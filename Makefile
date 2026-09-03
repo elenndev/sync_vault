@@ -11,8 +11,17 @@ all:
 	mkdir -p build/bin
 	$(CC) $(CFLAGS) $(SRC) -o $(BIN) $(LIBS)
 
+# Executa sem argumentos
 run: all
 	./$(BIN)
 
+run-args: all
+	./$(BIN) $(ARGS)
+
+r: all
+	./$(BIN) $(ARGS)
+
 clean:
 	rm -rf build
+
+
