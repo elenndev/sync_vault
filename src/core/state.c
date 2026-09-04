@@ -47,6 +47,7 @@ bool state_load(void) {
   FILE *file = fopen(path, "r");
   if (!file) {
     memset(&g_state, 0, sizeof(g_state));
+    printf("run auth command\n");
     return true;
   }
 

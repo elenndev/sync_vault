@@ -13,8 +13,6 @@ int main(int argc, char *argv[]) {
 
   if (strcmp(argv[1], "start") == 0) {
     if (state_load()) {
-      printf("started\n");
-
       return 0;
     };
     return 1;
