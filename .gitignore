@@ -2,6 +2,8 @@ build/
 
 *.o
 
+*.env
+
 compile_commands.json
 
 .cache/
