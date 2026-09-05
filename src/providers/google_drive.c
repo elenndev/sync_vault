@@ -122,7 +122,7 @@ bool google_drive_init(GoogleDriveProvider *provider) {
     return true;
   }
 
-  printf("enhum token salvo encontrado\n");
+  printf("nenhum token salvo encontrado\n");
   return true;
 }
 

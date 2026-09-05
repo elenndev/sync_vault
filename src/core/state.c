@@ -98,12 +98,9 @@ bool state_save(void) {
     return false;
   }
 
-  // Escreve todos os campos
   fprintf(file, "last_sync=%s\n", g_state.last_sync);
   fprintf(file, "last_backup_name=%s\n", g_state.last_backup_name);
   fprintf(file, "last_backup_hash=%s\n", g_state.last_backup_hash);
-  fprintf(file, "google_access_token=%s\n", g_state.google_access_token);
-  fprintf(file, "google_refresh_token=%s\n", g_state.google_refresh_token);
 
   fclose(file);
   return true;

@@ -21,7 +21,6 @@ handle_request(void *cls, struct MHD_Connection *connection, const char *url,
                const char *method, const char *version, const char *upload_data,
                size_t *upload_data_size, void **ptr) {
 
-  // Só aceita GET
   if (strcmp(method, "GET") != 0) {
     struct MHD_Response *response =
         MHD_create_response_from_buffer(0, NULL, MHD_RESPMEM_PERSISTENT);
@@ -31,12 +30,9 @@ handle_request(void *cls, struct MHD_Connection *connection, const char *url,
     return ret;
   }
 
-  // Verifica se é a rota de callback
   if (strncmp(url, "/oauth2callback/", 16) == 0) {
-    const char *provider =
-        url + 16; // Pega o nome do provider após /oauth2callback/
+    const char *provider = url + 16;
 
-    // Extrai parâmetros da query string
     const char *code =
         MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "code");
     const char *state =
@@ -46,7 +42,6 @@ handle_request(void *cls, struct MHD_Connection *connection, const char *url,
       log_info("Callback recebido para provider: %s", provider);
       user_callback(code, state ? state : "");
 
-      // Responde com página de sucesso
       const char *page = "<html><body><h1>Autorização concluída!</h1>"
                          "<p>Você pode fechar esta janela.</p></body></html>";
       struct MHD_Response *response = MHD_create_response_from_buffer(
@@ -55,11 +50,9 @@ handle_request(void *cls, struct MHD_Connection *connection, const char *url,
           MHD_queue_response(connection, MHD_HTTP_OK, response);
       MHD_destroy_response(response);
 
-      // Para o servidor automaticamente após receber o callback
       http_server_stop();
       return ret;
     } else {
-      // Responde com erro se faltar parâmetro
       const char *page =
           "<html><body><h1>Erro na autorização</h1>"
           "<p>Faltam parâmetros na requisição.</p></body></html>";
@@ -72,7 +65,6 @@ handle_request(void *cls, struct MHD_Connection *connection, const char *url,
     }
   }
 
-  // Rota raiz
   if (strcmp(url, "/") == 0) {
     const char *page = "<html><body><h1>Servidor de Callback OAuth</h1>"
                        "<p>Aguardando autorização...</p></body></html>";
@@ -83,7 +75,7 @@ handle_request(void *cls, struct MHD_Connection *connection, const char *url,
     return ret;
   }
 
-  // 404 para outras rotas
+  // 404
   struct MHD_Response *response =
       MHD_create_response_from_buffer(0, NULL, MHD_RESPMEM_PERSISTENT);
   enum MHD_Result ret =
