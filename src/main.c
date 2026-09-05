@@ -7,7 +7,6 @@
 #include <string.h>
 
 int main(int argc, char *argv[]) {
-  // Carrega o estado persistente
   if (!state_load()) {
     fprintf(stderr, "Error: Failed to load state\n");
     return 1;
