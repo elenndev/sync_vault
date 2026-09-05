@@ -73,7 +73,7 @@ int main(int argc, char *argv[]) {
 
   else if (strcmp(argv[1], "status") == 0) {
     State *state = state_get();
-    printf("\n📊 Status:\n");
+    printf("\nStatus:\n");
     printf("  Last sync: %s\n",
            state->last_sync[0] ? state->last_sync : "(never)");
     printf("  Last backup: %s\n",
