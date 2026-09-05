@@ -1,7 +1,7 @@
 #ifndef COLORS_H
 #define COLORS_H
 
-#define COLOR_RESET "\033[0m"
+#define STYLE_RESET "\033[0m"
 
 #define COLOR_BLACK "\033[30m"
 #define COLOR_RED "\033[31m"
@@ -48,7 +48,7 @@
 #define STYLE_HIDDEN "\033[8m"
 
 // macros
-#define COLORIZE(color, text) color text COLOR_RESET
+#define PRINT_STYLED(color, text) color text COLOR_RESET
 
 // usage:
 // printf(COLORIZE(COLOR_GREEN, "yess\n"));

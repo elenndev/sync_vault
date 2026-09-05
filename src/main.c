@@ -1,6 +1,7 @@
 #include "core/config.h"
 #include "core/state.h"
 #include "providers/google_drive.h"
+#include "utils/colors.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -73,11 +74,22 @@ int main(int argc, char *argv[]) {
 
   else if (strcmp(argv[1], "status") == 0) {
     State *state = state_get();
-    printf("\nStatus:\n");
-    printf("  Last sync: %s\n",
-           state->last_sync[0] ? state->last_sync : "(never)");
-    printf("  Last backup: %s\n",
-           state->last_backup_name[0] ? state->last_backup_name : "(never)");
+
+    printf(STYLE_BOLD "Status\n" STYLE_RESET);
+
+    printf("  Last sync: ");
+    if (state->last_sync[0]) {
+      printf(COLOR_GREEN "%s" STYLE_RESET, state->last_sync);
+    } else {
+      printf(COLOR_RED "(never)\n" STYLE_RESET);
+    }
+
+    printf("  Last backup: ");
+    if (state->last_backup_name[0]) {
+      printf(COLOR_GREEN "%s" STYLE_RESET, state->last_backup_name);
+    } else {
+      printf(COLOR_RED "(never)\n" STYLE_RESET);
+    }
 
     if (state->google_access_token[0]) {
       printf("  Google Drive: Authenticated\n");
