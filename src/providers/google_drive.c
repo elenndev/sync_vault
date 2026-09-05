@@ -122,7 +122,7 @@ bool google_drive_init(GoogleDriveProvider *provider) {
     return true;
   }
 
-  printf("nenhum token salvo encontrado\n");
+  printf("Token no found\n");
   return true;
 }
 
@@ -134,27 +134,25 @@ bool google_drive_authenticate(GoogleDriveProvider *provider) {
   g_provider = provider;
 
   if (load_tokens_from_state(provider)) {
-    printf("Usando tokens salvos\n");
+    printf("Using saved tokens\n");
 
-    // Verifica se o token ainda é válido
     if (!is_token_expired(provider)) {
-      printf("Token ainda válido\n");
+      printf("Token still valid\n");
       return true;
     }
 
-    // Token expirado, tenta refresh
-    printf("Token expirado, tentando refresh...\n");
+    printf("Token expired, attempting refresh...\n");
     if (google_drive_refresh_access_token(provider)) {
-      printf("Refresh bem sucedido\n");
+      printf("Refresh successful\n");
       return true;
     }
 
-    printf("Refresh falhou, reautenticando...\n");
+    printf("Refresh failed, re-authenticating...\n");
   }
 
-  printf("Iniciando fluxo OAuth...\n");
+  printf("Starting OAuth flow...\n");
 
-  // Gera state (CSRF)
+  // Generate state (CSRF)
   srand(time(NULL));
   char state[64];
   snprintf(state, sizeof(state), "%d", rand());
@@ -162,13 +160,13 @@ bool google_drive_authenticate(GoogleDriveProvider *provider) {
           sizeof(provider->expected_state) - 1);
   provider->expected_state[sizeof(provider->expected_state) - 1] = '\0';
 
-  // Inicia servidor HTTP (callback com 2 parâmetros)
+  // Start HTTP server (callback with 2 parameters)
   if (!http_server_start(8080, handle_oauth_callback)) {
     fprintf(stderr, "Failed to start HTTP server\n");
     return false;
   }
 
-  // Abre URL no navegador
+  // Open URL in browser
   const char *redirect_uri =
       "http://localhost:8080/oauth2callback/google_drive";
   char auth_url[4096];
@@ -187,24 +185,23 @@ bool google_drive_authenticate(GoogleDriveProvider *provider) {
   snprintf(command, sizeof(command), "xdg-open '%s'", auth_url);
   system(command);
 
-  printf("🌐 Navegador aberto para autenticação\n");
-  printf("📋 Aguardando callback em %s\n", redirect_uri);
+  printf("🌐 Browser opened for authentication\n");
+  printf("📋 Waiting for callback at %s\n", redirect_uri);
 
-  // Aguarda callback
+  // Wait for callback
   while (http_server_is_running()) {
     sleep(1);
   }
 
-  // Verifica se recebeu token
+  // Check if token was received
   if (provider->access_token[0] == '\0') {
-    fprintf(stderr, "❌ Autenticação falhou ou foi cancelada\n");
+    fprintf(stderr, "❌ Authentication failed or was cancelled\n");
     return false;
   }
 
-  printf("✅ Autenticação concluída com sucesso!\n");
+  printf("✅ Authentication completed successfully!\n");
   return true;
 }
-
 bool google_drive_refresh_access_token(GoogleDriveProvider *provider) {
   if (!provider) {
     return false;

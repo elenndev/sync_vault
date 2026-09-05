@@ -131,7 +131,7 @@ bool load_credentials(GoogleDriveProvider *provider) {
     return true;
   }
 
-  // 2. Tenta arquivo de configuração (padrão XDG)
+  // default config file (XDG)
   const char *xdg = getenv("XDG_CONFIG_HOME");
   char config_path[512];
 
