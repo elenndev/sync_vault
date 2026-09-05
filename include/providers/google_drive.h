@@ -15,6 +15,12 @@ typedef struct {
 } GoogleDriveProvider;
 
 typedef struct {
+  char client_id[256];
+  char client_secret[256];
+  char folder_id[128];
+} GoogleDriveConfig;
+
+typedef struct {
   char *data;
   size_t size;
   size_t capacity;
