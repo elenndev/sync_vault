@@ -1,7 +1,7 @@
 CC = gcc
 
 CFLAGS = -Wall -Wextra -std=c17 -Iinclude
-LIBS = -lcurl -lmicrohttpd
+LIBS = -lcurl -lmicrohttpd -ljson-c 
 
 SRC := $(shell find src -name "*.c")
 

@@ -61,16 +61,6 @@ bool config_save(Config *config) {
           "compression = \"%s\"\n",
           config->provider, config->compression);
 
-  for (size_t i = 0; i < config->vault_count; i++) {
-    const VaultConfig *vault = &config->vaults[i];
-
-    fprintf(file,
-            "[[vault]]\n"
-            "name = \"%s\"\n"
-            "path = \"%s\"\n\n",
-            vault->name, vault->path);
-  }
-
   fclose(file);
 
   return true;
@@ -107,12 +97,6 @@ bool config_load(Config *config) {
     }
 
     if (strcmp(line, "[[vault]]") == 0) {
-
-      if (reading_vault) {
-        if (config->vault_count < CONFIG_MAX_VAULTS) {
-          config->vaults[config->vault_count++] = current_vault;
-        }
-      }
 
       memset(&current_vault, 0, sizeof(current_vault));
       reading_vault = true;
@@ -157,24 +141,7 @@ bool config_load(Config *config) {
     }
   }
 
-  if (reading_vault) {
-    if (config->vault_count < CONFIG_MAX_VAULTS) {
-      config->vaults[config->vault_count++] = current_vault;
-    }
-  }
-
   fclose(file);
 
   return true;
-}
-
-bool config_add_vault(Config *config, const char *name, const char *path) {
-  if (config->vault_count >= CONFIG_MAX_VAULTS)
-    return false;
-
-  VaultConfig vault = vault_create(name, path);
-
-  config->vaults[config->vault_count++] = vault;
-
-  return config_save(config);
 }
