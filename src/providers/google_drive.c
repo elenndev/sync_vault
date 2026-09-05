@@ -28,22 +28,16 @@ static size_t write_response(void *contents, size_t size, size_t nmemb,
   return total;
 }
 
-// ============================================
-// FUNÇÕES DE PERSISTÊNCIA (NOVAS)
-// ============================================
-
 static bool load_tokens_from_state(GoogleDriveProvider *provider) {
-  State *state = state_get(); // ✅ AGORA EXISTE
+  State *state = state_get();
   if (!state) {
     return false;
   }
 
-  // Verifica se tem token salvo
   if (state->google_access_token[0] == '\0') {
     return false;
   }
 
-  // Restaura tokens
   strncpy(provider->access_token, state->google_access_token,
           sizeof(provider->access_token) - 1);
   provider->access_token[sizeof(provider->access_token) - 1] = '\0';
@@ -52,7 +46,7 @@ static bool load_tokens_from_state(GoogleDriveProvider *provider) {
           sizeof(provider->refresh_token) - 1);
   provider->refresh_token[sizeof(provider->refresh_token) - 1] = '\0';
 
-  printf("Tokens carregados do estado\n");
+  printf("Tokens loaded on state\n");
   return true;
 }
 
@@ -62,7 +56,6 @@ static bool save_tokens_to_state(GoogleDriveProvider *provider) {
     return false;
   }
 
-  // Salva tokens no state
   strncpy(state->google_access_token, provider->access_token,
           sizeof(state->google_access_token) - 1);
   state->google_access_token[sizeof(state->google_access_token) - 1] = '\0';
@@ -71,18 +64,14 @@ static bool save_tokens_to_state(GoogleDriveProvider *provider) {
           sizeof(state->google_refresh_token) - 1);
   state->google_refresh_token[sizeof(state->google_refresh_token) - 1] = '\0';
 
-  // Persiste no disco
   return state_save();
 }
 
 static bool is_token_expired(GoogleDriveProvider *provider) {
-  // Se não tem token, está expirado
   if (provider->access_token[0] == '\0') {
     return true;
   }
 
-  // Por enquanto, assume que token é válido por 1 hora
-  // Ideal: guardar timestamp de expiração
   return false;
 }
 
@@ -92,7 +81,7 @@ static void handle_oauth_callback(const char *code, const char *state) {
     return;
   }
 
-  // Valida state (CSRF)
+  // state (CSRF)
   if (!state || !g_provider->expected_state[0]) {
     fprintf(stderr, "⚠️ State validation failed: missing state\n");
     return;
@@ -106,7 +95,6 @@ static void handle_oauth_callback(const char *code, const char *state) {
   printf("\n✅ State validated successfully!\n");
   printf("✅ Authorization code received: %s\n", code);
 
-  // Troca código por tokens
   if (!google_drive_exchange_code(g_provider, code, state)) {
     fprintf(stderr, "Failed to exchange code for tokens\n");
     return;
