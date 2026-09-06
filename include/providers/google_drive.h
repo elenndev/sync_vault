@@ -27,6 +27,8 @@ typedef struct {
 } ResponseBuffer;
 
 bool google_drive_init(GoogleDriveProvider *provider);
+bool download_file(char *access_token, char *file_id, char *file_name);
+bool list_folder_files(char *access_token, char *folder_id);
 bool google_drive_authenticate(GoogleDriveProvider *provider);
 bool google_drive_refresh_access_token(GoogleDriveProvider *provider);
 bool google_drive_exchange_code(GoogleDriveProvider *provider, const char *code,

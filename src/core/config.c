@@ -1,7 +1,5 @@
 #include "core/config.h"
-#include "core/config_vault.h"
 #include "providers/google_drive.h"
-#include "utils/string_utils.h"
 #include <json-c/json.h>
 #include <stdio.h>
 #include <stdlib.h>

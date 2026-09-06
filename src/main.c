@@ -92,7 +92,6 @@ int main(int argc, char *argv[]) {
 
     if (state->google_access_token[0]) {
       printf("  Google Drive: Authenticated\n");
-      printf("  Access token: %s...\n", state->google_access_token + 10);
     } else {
       printf("  Google Drive: Not authenticated (run 'auth')\n");
     }
@@ -101,6 +100,19 @@ int main(int argc, char *argv[]) {
 
   else if (strcmp(argv[1], "start") == 0) {
     printf("started\n");
+
+    GoogleDriveProvider provider = {0};
+    State *state = state_get();
+
+    if (!load_credentials(&provider)) {
+      return 1;
+    }
+
+    printf("%s", state->google_refresh_token);
+
+    // list_folder_files(provider.access_token, provider.folder_id);
+    // download_file(provider.access_token, char *file_id, char *file_name);
+
     return 0;
   }
 

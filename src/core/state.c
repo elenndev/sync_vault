@@ -7,7 +7,7 @@
 
 static State g_state;
 
-static void get_state_dir(char *buffer, size_t size) {
+void get_state_dir(char *buffer, size_t size) {
   const char *xdg = getenv("XDG_STATE_HOME");
 
   if (xdg) {
@@ -101,6 +101,8 @@ bool state_save(void) {
   fprintf(file, "last_sync=%s\n", g_state.last_sync);
   fprintf(file, "last_backup_name=%s\n", g_state.last_backup_name);
   fprintf(file, "last_backup_hash=%s\n", g_state.last_backup_hash);
+  fprintf(file, "google_refresh_token=%s\n", g_state.google_refresh_token);
+  fprintf(file, "google_access_token=%s\n", g_state.google_access_token);
 
   fclose(file);
   return true;

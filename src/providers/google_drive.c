@@ -3,13 +3,212 @@
 #include "http/http_server.h"
 #include <curl/curl.h>
 #include <curl/easy.h>
+#include <json-c/json_tokener.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include <unistd.h> // Para sleep()
+#include <unistd.h>
 
 static GoogleDriveProvider *g_provider = NULL;
+
+static size_t write_callback(void *contents, size_t size, size_t nmemb,
+                             void *userp) {
+  size_t total_size = size * nmemb;
+
+  ResponseBuffer *buffer = (ResponseBuffer *)userp;
+
+  if (buffer->size + total_size + 1 > buffer->capacity) {
+    return 0;
+  }
+
+  memcpy(buffer->data + buffer->size, contents, total_size);
+
+  buffer->size += total_size;
+  buffer->data[buffer->size] = '\0';
+
+  return total_size;
+}
+
+bool download_file(char *access_token, char *file_id, char *file_name) {
+  char url[2048];
+  snprintf(url, sizeof(url),
+           "https://www.googleapis.com/drive/v3/files/%s?alt=media", file_id);
+  CURL *curl = curl_easy_init();
+  if (!curl) {
+    return false;
+  }
+
+  char dir[512];
+  get_state_dir(dir, sizeof(dir));
+
+  char file_path[512];
+  snprintf(file_path, sizeof(file_path), "%s/%s", dir, file_name);
+
+  FILE *output_file = fopen(file_path, "wb");
+  if (!output_file) {
+    fprintf(stderr, "Failed to create file: %s\n", file_path);
+    return false;
+  }
+
+  struct curl_slist *headers = NULL;
+  char auth_header[512];
+  snprintf(auth_header, sizeof(auth_header), "Authorization: Bearer %s",
+           access_token);
+  headers = curl_slist_append(headers, auth_header);
+
+  curl_easy_setopt(curl, CURLOPT_URL, url);
+  curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+  curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, fwrite);
+  curl_easy_setopt(curl, CURLOPT_WRITEDATA, output_file);
+
+  // curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 0L);
+  // curl_easy_setopt(curl, CURLOPT_PROGRESSFUNCTION, progress_callback);
+
+  CURLcode res = curl_easy_perform(curl);
+  fclose(output_file);
+  curl_easy_cleanup(curl);
+
+  return res == CURLE_OK;
+}
+
+bool list_folder_files(char *access_token, char *folder_id) {
+  char url[2048];
+  snprintf(url, sizeof(url),
+           "https://www.googleapis.com/drive/v3/files"
+           "?q='%s'+in+parents"
+           "&fields=files(id,name,mimeType,size,createdTime,modifiedTime)"
+           "&pageSize=1000",
+           folder_id);
+
+  CURL *curl = curl_easy_init();
+  if (!curl) {
+    fprintf(stderr, "Failed to initialize CURL\n");
+    return false;
+  }
+
+  struct curl_slist *headers = NULL;
+  char auth_header[512];
+  snprintf(auth_header, sizeof(auth_header), "Authorization: Bearer %s",
+           access_token);
+  headers = curl_slist_append(headers, auth_header);
+  headers = curl_slist_append(headers, "Content-Type: application/json");
+
+  char response_buffer[65536] = {0};
+
+  curl_easy_setopt(curl, CURLOPT_URL, url);
+  curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+  curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
+  curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response_buffer);
+
+  CURLcode res = curl_easy_perform(curl);
+
+  if (res != CURLE_OK) {
+    fprintf(stderr, "CURL error: %s\n", curl_easy_strerror(res));
+    curl_easy_cleanup(curl);
+    curl_slist_free_all(headers);
+    return false;
+  }
+
+  long http_code = 0;
+  curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
+
+  curl_easy_cleanup(curl);
+  curl_slist_free_all(headers);
+
+  if (http_code != 200) {
+    fprintf(stderr, "HTTP error: %ld\n", http_code);
+    fprintf(stderr, "Response: %s\n", response_buffer);
+    return false;
+  }
+
+  struct json_object *root = json_tokener_parse(response_buffer);
+  if (!root) {
+    fprintf(stderr, "Failed to parse JSON\n");
+    return false;
+  }
+
+  // Pega o array "files"
+  struct json_object *files;
+  if (!json_object_object_get_ex(root, "files", &files)) {
+    fprintf(stderr, "No 'files' field in response\n");
+    json_object_put(root);
+    return false;
+  }
+
+  if (!json_object_is_type(files, json_type_array)) {
+    fprintf(stderr, "'files' is not an array\n");
+    json_object_put(root);
+    return false;
+  }
+
+  int total_files = json_object_array_length(files);
+  printf("\n📂 Found %d items in folder\n", total_files);
+  printf("========================================\n\n");
+
+  // Itera sobre o array
+  for (int i = 0; i < total_files; i++) {
+    struct json_object *file = json_object_array_get_idx(files, i);
+    if (!file)
+      continue;
+
+    // Pega cada campo
+    struct json_object *name_obj, *id_obj, *mime_obj, *size_obj;
+
+    const char *name = NULL;
+    const char *file_id = NULL;
+    const char *mime_type = NULL;
+    double size = 0;
+    bool has_size = false;
+
+    if (json_object_object_get_ex(file, "name", &name_obj)) {
+      name = json_object_get_string(name_obj);
+    }
+
+    if (json_object_object_get_ex(file, "id", &id_obj)) {
+      file_id = json_object_get_string(id_obj);
+    }
+
+    if (json_object_object_get_ex(file, "mimeType", &mime_obj)) {
+      mime_type = json_object_get_string(mime_obj);
+    }
+
+    if (json_object_object_get_ex(file, "size", &size_obj)) {
+      size = json_object_get_double(size_obj);
+      has_size = true;
+    }
+
+    if (!name || !file_id || !mime_type)
+      continue;
+
+    if (strcmp(mime_type, "application/vnd.google-apps.folder") == 0) {
+      printf("%s (folder)\n", name);
+      printf("ID: %s\n", file_id);
+    } else {
+      if (has_size) {
+        if (size > 1024 * 1024) {
+          printf("%s (%.2f MB)\n", name, size / (1024.0 * 1024.0));
+        } else if (size > 1024) {
+          printf("%s (%.2f KB)\n", name, size / 1024.0);
+        } else {
+          printf("%s (%0.f bytes)\n", name, size);
+        }
+      } else {
+        if (strstr(mime_type, "application/vnd.google-apps.") != NULL) {
+          printf("%s (Google Workspace)\n", name);
+        } else {
+          printf("%s\n", name);
+        }
+      }
+      printf("   ID: %s\n", file_id);
+      printf("   Type: %s\n", mime_type);
+    }
+    printf("\n");
+  }
+
+  json_object_put(root);
+  return true;
+}
 
 // Response buffer callback
 static size_t write_response(void *contents, size_t size, size_t nmemb,
@@ -51,8 +250,12 @@ static bool load_tokens_from_state(GoogleDriveProvider *provider) {
 }
 
 static bool save_tokens_to_state(GoogleDriveProvider *provider) {
+  printf("=== Saving tokens to state ===\n");
+
   State *state = state_get();
+
   if (!state) {
+    fprintf(stderr, "Failed to get state\n");
     return false;
   }
 
@@ -64,9 +267,18 @@ static bool save_tokens_to_state(GoogleDriveProvider *provider) {
           sizeof(state->google_refresh_token) - 1);
   state->google_refresh_token[sizeof(state->google_refresh_token) - 1] = '\0';
 
-  return state_save();
-}
+  printf("Calling state_save()...\n");
 
+  if (!state_save()) {
+    fprintf(stderr, "state_save() failed\n");
+    return false;
+  }
+
+  printf("state_save() succeeded\n");
+  printf("=== Tokens saved successfully ===\n");
+
+  return true;
+}
 static bool is_token_expired(GoogleDriveProvider *provider) {
   if (provider->access_token[0] == '\0') {
     return true;
@@ -118,11 +330,11 @@ bool google_drive_init(GoogleDriveProvider *provider) {
   }
 
   if (load_tokens_from_state(provider)) {
-    printf("Tokens restaurados do estado\n");
+    printf("Tokens restaured from state\n");
     return true;
   }
 
-  printf("Token no found\n");
+  printf("Token not found\n");
   return true;
 }
 
@@ -276,7 +488,6 @@ bool google_drive_exchange_code(GoogleDriveProvider *provider, const char *code,
     return false;
   }
 
-  // Valida o state novamente
   if (!state || !provider->expected_state[0]) {
     fprintf(stderr, "State validation failed in exchange\n");
     return false;
@@ -343,14 +554,48 @@ bool google_drive_exchange_code(GoogleDriveProvider *provider, const char *code,
   printf("Tokens received!\n");
   printf("Response: %s\n", response);
 
-  strncpy(provider->access_token, response, sizeof(provider->access_token) - 1);
+  struct json_object *json = json_tokener_parse(response);
+
+  if (json == NULL) {
+    fprintf(stderr, "Failed to parse token response\n");
+    return false;
+  }
+
+  struct json_object *access_token = NULL;
+  struct json_object *refresh_token = NULL;
+
+  if (!json_object_object_get_ex(json, "access_token", &access_token) ||
+      !json_object_is_type(access_token, json_type_string)) {
+    fprintf(stderr, "access_token not found in response\n");
+    json_object_put(json);
+    return false;
+  }
+
+  if (!json_object_object_get_ex(json, "refresh_token", &refresh_token) ||
+      !json_object_is_type(refresh_token, json_type_string)) {
+    fprintf(stderr, "refresh_token not found in response\n");
+    json_object_put(json);
+    return false;
+  }
+
+  const char *access_token_value = json_object_get_string(access_token);
+  const char *refresh_token_value = json_object_get_string(refresh_token);
+
+  strncpy(provider->access_token, access_token_value,
+          sizeof(provider->access_token) - 1);
   provider->access_token[sizeof(provider->access_token) - 1] = '\0';
+
+  strncpy(provider->refresh_token, refresh_token_value,
+          sizeof(provider->refresh_token) - 1);
+  provider->refresh_token[sizeof(provider->refresh_token) - 1] = '\0';
+
+  json_object_put(json);
 
   if (!save_tokens_to_state(provider)) {
     fprintf(stderr, "Failed to save tokens to state\n");
     return false;
   }
 
-  printf("✅ Tokens saved to state\n");
+  printf("Tokens saved to state\n");
   return true;
 }
