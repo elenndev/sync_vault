@@ -1,6 +1,7 @@
 #include "providers/google_drive.h"
 #include "core/state.h"
 #include "http/http_server.h"
+#include "utils/colors.h"
 #include <curl/curl.h>
 #include <curl/easy.h>
 #include <json-c/json_tokener.h>
@@ -144,7 +145,12 @@ bool list_folder_files(char *access_token, char *folder_id) {
   }
 
   int total_files = json_object_array_length(files);
-  printf("\n📂 Found %d items in folder\n", total_files);
+  if (total_files == 0) {
+    printf(COLOR_RED "There is no backup yet\n" STYLE_RESET);
+    return true;
+  }
+
+  printf(STYLE_BOLD "\nFound %d items in folder\n" STYLE_RESET, total_files);
   printf("========================================\n\n");
 
   for (int i = 0; i < total_files; i++) {
