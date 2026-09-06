@@ -147,7 +147,7 @@ bool list_folder_files(char *access_token, char *folder_id) {
   int total_files = json_object_array_length(files);
   if (total_files == 0) {
     printf(COLOR_RED "There is no backup yet\n" STYLE_RESET);
-    return true;
+    return false;
   }
 
   printf(STYLE_BOLD "\nFound %d items in folder\n" STYLE_RESET, total_files);

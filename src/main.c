@@ -108,8 +108,12 @@ int main(int argc, char *argv[]) {
       return 1;
     }
 
-    list_folder_files(state->google_access_token, provider.folder_id);
-    // download_file(provider.access_token, char *file_id, char *file_name);
+    if (list_folder_files(state->google_access_token, provider.folder_id)) {
+      // download_file(provider.access_token, char *file_id, char *file_name);
+
+    } else {
+      printf("run 'sync'\n");
+    }
 
     return 0;
   }
