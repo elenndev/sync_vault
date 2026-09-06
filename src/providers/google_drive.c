@@ -94,7 +94,9 @@ bool list_folder_files(char *access_token, char *folder_id) {
   headers = curl_slist_append(headers, auth_header);
   headers = curl_slist_append(headers, "Content-Type: application/json");
 
-  char response_buffer[65536] = {0};
+  char response[65536] = {0};
+  ResponseBuffer response_buffer = {
+      .data = response, .size = 0, .capacity = sizeof(response)};
 
   curl_easy_setopt(curl, CURLOPT_URL, url);
   curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
@@ -118,17 +120,16 @@ bool list_folder_files(char *access_token, char *folder_id) {
 
   if (http_code != 200) {
     fprintf(stderr, "HTTP error: %ld\n", http_code);
-    fprintf(stderr, "Response: %s\n", response_buffer);
+    fprintf(stderr, "Response: %s\n", response_buffer.data);
     return false;
   }
 
-  struct json_object *root = json_tokener_parse(response_buffer);
+  struct json_object *root = json_tokener_parse(response_buffer.data);
   if (!root) {
     fprintf(stderr, "Failed to parse JSON\n");
     return false;
   }
 
-  // Pega o array "files"
   struct json_object *files;
   if (!json_object_object_get_ex(root, "files", &files)) {
     fprintf(stderr, "No 'files' field in response\n");
@@ -146,13 +147,11 @@ bool list_folder_files(char *access_token, char *folder_id) {
   printf("\n📂 Found %d items in folder\n", total_files);
   printf("========================================\n\n");
 
-  // Itera sobre o array
   for (int i = 0; i < total_files; i++) {
     struct json_object *file = json_object_array_get_idx(files, i);
     if (!file)
       continue;
 
-    // Pega cada campo
     struct json_object *name_obj, *id_obj, *mime_obj, *size_obj;
 
     const char *name = NULL;

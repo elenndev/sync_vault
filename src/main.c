@@ -108,9 +108,7 @@ int main(int argc, char *argv[]) {
       return 1;
     }
 
-    printf("%s", state->google_refresh_token);
-
-    // list_folder_files(provider.access_token, provider.folder_id);
+    list_folder_files(state->google_access_token, provider.folder_id);
     // download_file(provider.access_token, char *file_id, char *file_name);
 
     return 0;
