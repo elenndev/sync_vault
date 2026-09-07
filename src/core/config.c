@@ -2,46 +2,13 @@
 #include "core/state.h"
 #include "providers/google_drive.h"
 #include "utils/colors.h"
+#include "utils/files.h"
 #include <json-c/json.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
-
-static void get_config_dir(char *buffer, size_t size) {
-  const char *xdg = getenv("XDG_CONFIG_HOME");
-
-  if (xdg) {
-    snprintf(buffer, size, "%s/sync-vault", xdg);
-  } else {
-    const char *home = getenv("HOME");
-
-    snprintf(buffer, size, "%s/.config/sync-vault", home);
-  }
-}
-
-static void get_config_file(char *buffer, size_t size) {
-  char dir[512];
-
-  get_config_dir(dir, sizeof(dir));
-
-  snprintf(buffer, size, "%s/config.conf", dir);
-}
-
-static bool ensure_config_dir(void) {
-  char dir[512];
-
-  get_config_dir(dir, sizeof(dir));
-
-  struct stat st;
-
-  if (stat(dir, &st) == 0) {
-    return true;
-  }
-
-  return mkdir(dir, 0755) == 0;
-}
 
 static bool load_credentials_from_file(const char *config_path,
                                        GoogleDriveProvider *provider) {
@@ -152,29 +119,43 @@ static bool load_vault_config_from_file(const char *config_path, State *state) {
   if (!json_object_object_get_ex(parsed, "vault_config", &vault_config)) {
     fprintf(stderr, "Missing 'vault_config' object in config\n");
     json_object_put(parsed);
+
+    printf(STYLE_BOLD "===\nNo Vault Config found!===\n\n" STYLE_RESET);
+    printf("Please set your Vault Path using one of these "
+           "methods:\n\n");
+    printf("  Method 1: Environment variables (recommended)\n");
+    printf("    export VAULT_PATH='your_vault_path'\n");
+    printf("  Method 2: Config file\n");
+    printf("    Create: %s\n", config_path);
+    printf("    add the content:\n");
+    printf("    {\n");
+    printf("      \"vault_path\": \"your vault path\",\n");
+    printf("\n");
+
     return false;
   }
 
   struct json_object *path_obj = NULL;
-  if (json_object_object_get_ex(vault_config, "path", &path_obj)) {
-    const char *vault_path_str = json_object_get_string(path_obj);
-    if (vault_path_str) {
-      if (vault_path_str && strlen(vault_path_str) > 0) {
-        strncpy(state->vault_path, vault_path_str,
-                sizeof(state->vault_path) - 1);
-        state->vault_path[sizeof(state->vault_path) - 1] = '\0';
+  if (!json_object_object_get_ex(vault_config, "path", &path_obj)) {
+    fprintf(stderr, COLOR_RED
+            "Warning: 'path' field not found in vault_config\n" STYLE_RESET);
 
-      } else {
-        return false;
-      }
-    } else {
-      return false;
-    }
-  } else {
-    state->vault_path[0] = '\0';
-    fprintf(stderr, "Warning: 'path' field not found in vault_config\n");
+    return false;
   }
 
+  const char *vault_path_str = json_object_get_string(path_obj);
+  if (!vault_path_str || strlen(vault_path_str) == 0) {
+    return false;
+  }
+
+  if (!directory_exists(vault_path_str)) {
+    fprintf(stderr, COLOR_RED "Warning: '%s' is not a valid path\n" STYLE_RESET,
+            vault_path_str);
+    return false;
+  }
+
+  strncpy(state->vault_path, vault_path_str, sizeof(state->vault_path) - 1);
+  state->vault_path[sizeof(state->vault_path) - 1] = '\0';
   json_object_put(parsed);
   return true;
 }
@@ -262,18 +243,6 @@ bool load_vault_config(State *state) {
     printf("Vault config loaded from config file\n");
     return true;
   }
-
-  printf(STYLE_BOLD "===\nNo Vault Config found!===\n\n" STYLE_RESET);
-  printf("Please set your Vault Path using one of these "
-         "methods:\n\n");
-  printf("  Method 1: Environment variables (recommended)\n");
-  printf("    export VAULT_PATH='your_vault_path'\n");
-  printf("  Method 2: Config file\n");
-  printf("    Create: %s\n", config_path);
-  printf("    add the content:\n");
-  printf("    {\n");
-  printf("      \"vault_path\": \"your vault path\",\n");
-  printf("\n");
 
   return false;
 }
