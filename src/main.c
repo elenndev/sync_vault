@@ -120,7 +120,18 @@ int main(int argc, char *argv[]) {
       return 1;
     }
 
+    if (!load_vault_config(state)) {
+      return 1;
+    }
+
     printf(STYLE_BOLD "Status\n" STYLE_RESET);
+
+    printf("  Vault Path: ");
+    if (state->last_sync[0]) {
+      printf("%s", state->vault_path);
+    } else {
+      printf(COLOR_RED "(null\n" STYLE_RESET);
+    }
 
     printf("  Last sync: ");
     if (state->last_sync[0]) {
@@ -147,7 +158,7 @@ int main(int argc, char *argv[]) {
 
     } else {
       // upload file
-      printf("run 'sync'\n");
+      printf(STYLE_BOLD "run 'sync'\n" STYLE_RESET);
     }
 
     return 0;
