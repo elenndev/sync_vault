@@ -127,8 +127,8 @@ int main(int argc, char *argv[]) {
     printf(STYLE_BOLD "Status\n" STYLE_RESET);
 
     printf("  Vault Path: ");
-    if (state->last_sync[0]) {
-      printf("%s", state->vault_path);
+    if (state->vault_path[0]) {
+      printf("%s\n", state->vault_path);
     } else {
       printf(COLOR_RED "(null\n" STYLE_RESET);
     }
