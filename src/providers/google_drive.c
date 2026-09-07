@@ -473,10 +473,29 @@ bool google_drive_refresh_access_token(GoogleDriveProvider *provider) {
     return false;
   }
 
-  printf("response:\n%s\n", response);
+  printf("successfully refreshed access token\n");
 
-  strncpy(provider->access_token, response, sizeof(provider->access_token) - 1);
+  struct json_object *json = json_tokener_parse(response);
+
+  if (json == NULL) {
+    fprintf(stderr, "Failed to parse token response\n");
+    return false;
+  }
+
+  struct json_object *access_token = NULL;
+  if (!json_object_object_get_ex(json, "access_token", &access_token) ||
+      !json_object_is_type(access_token, json_type_string)) {
+    fprintf(stderr, "access_token not found in response\n");
+    json_object_put(json);
+    return false;
+  }
+
+  const char *access_token_value = json_object_get_string(access_token);
+  strncpy(provider->access_token, access_token_value,
+          sizeof(provider->access_token) - 1);
   provider->access_token[sizeof(provider->access_token) - 1] = '\0';
+
+  json_object_put(json);
 
   if (!save_tokens_to_state(provider)) {
     fprintf(stderr, "Failed to save refreshed tokens\n");
