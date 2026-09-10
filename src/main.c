@@ -1,3 +1,4 @@
+#include "core/cache.h"
 #include "core/config.h"
 #include "core/state.h"
 #include "providers/google_drive.h"
@@ -9,6 +10,11 @@
 int main(int argc, char *argv[]) {
   if (!state_load()) {
     fprintf(stderr, "Error: Failed to load state\n");
+    return 1;
+  }
+
+  if (!cache_init()) {
+    fprintf(stderr, "Error: Failed to start cache\n");
     return 1;
   }
 
@@ -162,6 +168,33 @@ int main(int argc, char *argv[]) {
     }
 
     return 0;
+  }
+
+  if (strcmp(argv[1], "sync") == 0) {
+    printf("started sync...");
+
+    GoogleDriveProvider provider = {0};
+    State *state = state_get();
+
+    strncpy(provider.access_token, state->google_access_token,
+            sizeof(provider.access_token) - 1);
+    provider.access_token[sizeof(provider.access_token) - 1] = '\0';
+
+    strncpy(provider.refresh_token, state->google_refresh_token,
+            sizeof(provider.refresh_token) - 1);
+    provider.refresh_token[sizeof(provider.refresh_token) - 1] = '\0';
+
+    if (!load_credentials(&provider)) {
+      return 1;
+    }
+
+    if (!google_drive_refresh_access_token(&provider)) {
+      return 1;
+    }
+
+    if (!load_vault_config(state)) {
+      return 1;
+    }
   }
 
   printf("Unknown command: %s\n", argv[1]);

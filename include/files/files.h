@@ -1,5 +1,5 @@
-#ifndef ARCHIVE_H
-#define ARCHIVE_H
+#ifndef FILES_H
+#define FILES_H
 
 #include <stdbool.h>
 
