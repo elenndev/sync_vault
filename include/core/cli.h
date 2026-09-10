@@ -1,10 +1,8 @@
 #ifndef CLI_H
 #define CLI_H
 #include <stdbool.h>
+#include <stddef.h>
 
-bool is_on_get_input;
-
-void enter_get_input(void);
-void end_get_input(void);
+bool get_password(char *password, size_t size);
 
 #endif

@@ -1,4 +1,5 @@
 #include "core/cache.h"
+#include "core/cli.h"
 #include "core/config.h"
 #include "core/state.h"
 #include "providers/google_drive.h"
@@ -195,6 +196,13 @@ int main(int argc, char *argv[]) {
     if (!load_vault_config(state)) {
       return 1;
     }
+
+    char password[256];
+    if (!get_password(password, sizeof(password))) {
+      fprintf(stderr, "Error: failed to read password\n");
+      return 1;
+    }
+    return 0;
   }
 
   printf("Unknown command: %s\n", argv[1]);
