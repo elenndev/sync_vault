@@ -2,6 +2,7 @@
 #include "core/cli.h"
 #include "core/config.h"
 #include "core/state.h"
+#include "files/files.h"
 #include "providers/google_drive.h"
 #include "utils/colors.h"
 #include <stdio.h>
@@ -165,7 +166,18 @@ int main(int argc, char *argv[]) {
 
     } else {
       // upload file
-      printf(STYLE_BOLD "run 'sync'\n" STYLE_RESET);
+      printf(STYLE_BOLD "running 'sync'...\n" STYLE_RESET);
+      char password[256];
+      if (!get_password(password, sizeof(password))) {
+        fprintf(stderr, "Error: failed to read password\n");
+        return 1;
+      }
+
+      const char *cache = cache_get_path();
+      if (!archive_create(state->vault_path, cache, password)) {
+        fprintf(stderr, "Error: failed to create vault encrypted file\n");
+        return 1;
+      }
     }
 
     return 0;
