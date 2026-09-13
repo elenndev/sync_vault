@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #define ARCHIVE_EXECUTABLE "crip-crypt"
 #define ARCHIVE_FILE_NAME "vault.tar.gz.age"
 
@@ -114,13 +115,16 @@ static void archive_format_timestamp(const ArchiveTimestamp *ts, char *buffer,
 }
 
 bool archive_create(const char *vault_path, const char *output_directory,
+                    char *archive_path, char *archive_name,
                     const char *password) {
-  char archive_name[ARCHIVE_NAME_MAX];
 
-  if (!archive_generate_name(archive_name, sizeof(archive_name))) {
-    fprintf(stderr, "Failed to generate archive name\n");
+  if (!archive_generate_name(archive_name, ARCHIVE_NAME_MAX)) {
+    fprintf(stderr, "Failed to generate archive name \n");
     return false;
   }
+
+  snprintf(archive_path, ARCHIVE_NAME_MAX, "%s/%s", output_directory,
+           archive_name);
 
   char command[2048];
   snprintf(command, sizeof(command),

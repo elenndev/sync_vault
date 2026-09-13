@@ -174,8 +174,18 @@ int main(int argc, char *argv[]) {
       }
 
       const char *cache = cache_get_path();
-      if (!archive_create(state->vault_path, cache, password)) {
+      char archive_path[1024];
+      char archive_name[ARCHIVE_NAME_MAX];
+
+      if (!archive_create(state->vault_path, cache, archive_path, archive_name,
+                          password)) {
         fprintf(stderr, "Error: failed to create vault encrypted file\n");
+        return 1;
+      }
+
+      if (!upload_file(state->google_access_token, provider.folder_id,
+                       archive_path, archive_name)) {
+        fprintf(stderr, "Error: failed upload archive\n");
         return 1;
       }
     }

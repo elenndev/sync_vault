@@ -5,9 +5,11 @@
 #include <curl/curl.h>
 #include <curl/easy.h>
 #include <json-c/json_tokener.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -232,6 +234,67 @@ static size_t write_response(void *contents, size_t size, size_t nmemb,
   return total;
 }
 
+static size_t read_callback(char *ptr, size_t size, size_t nmemb,
+                            void *userdata) {
+  UploadFileContext *ctx = (UploadFileContext *)userdata;
+  return fread(ptr, size, nmemb, ctx->file);
+}
+
+static size_t header_callback(char *buffer, size_t size, size_t nitems,
+                              void *userdata) {
+  size_t total = size * nitems;
+  ResponseBuffer *hb = (ResponseBuffer *)userdata;
+
+  if (hb->size + total + 1 > hb->capacity) {
+    return 0;
+  }
+
+  memcpy(hb->data + hb->size, buffer, total);
+  hb->size += total;
+  hb->data[hb->size] = '\0';
+  return total;
+}
+
+static char *extract_location_header(const char *headers) {
+  if (!headers)
+    return NULL;
+
+  const char *p = headers;
+  const char *prefix = "location:";
+  size_t prefix_len = strlen(prefix);
+
+  while (*p) {
+    if (strncasecmp(p, prefix, prefix_len) == 0) {
+      const char *value = p + prefix_len;
+
+      while (*value == ' ' || *value == '\t')
+        value++;
+
+      const char *end = value;
+      while (*end && *end != '\r' && *end != '\n')
+        end++;
+
+      size_t len = end - value;
+      if (len == 0)
+        return NULL;
+
+      char *location = malloc(len + 1);
+      if (!location)
+        return NULL;
+
+      memcpy(location, value, len);
+      location[len] = '\0';
+      return location;
+    }
+
+    const char *nl = strchr(p, '\n');
+    if (!nl)
+      break;
+    p = nl + 1;
+  }
+
+  return NULL;
+}
 static bool load_tokens_from_state(GoogleDriveProvider *provider) {
   State *state = state_get();
   if (!state) {
@@ -322,6 +385,135 @@ static void handle_oauth_callback(const char *code, const char *state) {
   http_server_stop();
 }
 
+bool upload_file(const char *access_token, const char *folder_id,
+                 const char *file_path, const char *file_name) {
+  CURL *curl = curl_easy_init();
+  if (!curl) {
+    fprintf(stderr, "Failed to initialize CURL\n");
+    return false;
+  }
+
+  // start session
+  char init_url[2048];
+  snprintf(
+      init_url, sizeof(init_url),
+      "https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable");
+
+  struct curl_slist *headers = NULL;
+  char auth_header[512];
+  snprintf(auth_header, sizeof(auth_header), "Authorization: Bearer %s",
+           access_token);
+  headers = curl_slist_append(headers, auth_header);
+
+  char metadata[1024];
+  snprintf(metadata, sizeof(metadata),
+           "{\"name\": \"%s\", \"parents\": [\"%s\"]}", file_name, folder_id);
+
+  headers = curl_slist_append(headers, "Content-Type: application/json");
+  headers = curl_slist_append(
+      headers, "X-Upload-Content-Type: application/octet-stream");
+
+  char response_buffer[4096] = {0};
+  ResponseBuffer response_buf = {
+      .data = response_buffer, .size = 0, .capacity = sizeof(response_buffer)};
+
+  // Buffer to get headers
+  char header_buffer[8192] = {0};
+  ResponseBuffer header_buf = {
+      .data = header_buffer, .size = 0, .capacity = sizeof(header_buffer)};
+
+  curl_easy_setopt(curl, CURLOPT_URL, init_url);
+  curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+  curl_easy_setopt(curl, CURLOPT_POSTFIELDS, metadata);
+  curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
+  curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response_buf);
+  curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, header_callback);
+  curl_easy_setopt(curl, CURLOPT_HEADERDATA, &header_buf);
+
+  CURLcode res = curl_easy_perform(curl);
+  if (res != CURLE_OK) {
+    fprintf(stderr, "CURL error initiating upload: %s\n",
+            curl_easy_strerror(res));
+    curl_slist_free_all(headers);
+    curl_easy_cleanup(curl);
+    return false;
+  }
+
+  // check session url
+  char *session_uri = extract_location_header(header_buf.data);
+  if (!session_uri) {
+    fprintf(stderr, "Failed to get session URI from response\n");
+    fprintf(stderr, "Headers received:\n%s\n", header_buf.data);
+    curl_slist_free_all(headers);
+    curl_easy_cleanup(curl);
+    return false;
+  }
+
+  printf("Session URI obtained: %.80s...\n", session_uri);
+
+  curl_slist_free_all(headers);
+
+  FILE *file = fopen(file_path, "rb");
+  if (!file) {
+    fprintf(stderr, "Failed to open file: %s\n", file_path);
+    free(session_uri);
+    curl_easy_cleanup(curl);
+    return false;
+  }
+
+  fseek(file, 0, SEEK_END);
+  curl_off_t file_size = ftell(file);
+  fseek(file, 0, SEEK_SET);
+
+  printf("Uploading %s (%.2f MB)...\n", file_name,
+         file_size / (1024.0 * 1024.0));
+
+  UploadFileContext file_ctx = {.file = file, .size = file_size};
+
+  headers = NULL;
+  headers =
+      curl_slist_append(headers, "Content-Type: application/octet-stream");
+
+  // buffers reset
+  memset(response_buffer, 0, sizeof(response_buffer));
+  response_buf.size = 0;
+
+  curl_easy_setopt(curl, CURLOPT_URL, session_uri);
+  curl_easy_setopt(curl, CURLOPT_UPLOAD, 1L);
+  curl_easy_setopt(curl, CURLOPT_READFUNCTION, read_callback);
+  curl_easy_setopt(curl, CURLOPT_READDATA, &file_ctx);
+  curl_easy_setopt(curl, CURLOPT_INFILESIZE_LARGE, file_size);
+  curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+  curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
+  curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response_buf);
+  curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, NULL);
+  curl_easy_setopt(curl, CURLOPT_HEADERDATA, NULL);
+
+  res = curl_easy_perform(curl);
+
+  long http_code = 0;
+  curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
+
+  fclose(file);
+  curl_slist_free_all(headers);
+  curl_easy_cleanup(curl);
+  free(session_uri);
+
+  if (res != CURLE_OK) {
+    fprintf(stderr, "CURL error during file upload: %s\n",
+            curl_easy_strerror(res));
+    return false;
+  }
+
+  if (http_code != 200 && http_code != 201) {
+    fprintf(stderr, "HTTP error during upload: %ld\n", http_code);
+    fprintf(stderr, "Response: %s\n", response_buf.data);
+    return false;
+  }
+
+  printf("File uploaded successfully!\n");
+  return true;
+}
 bool google_drive_init(GoogleDriveProvider *provider) {
   if (!provider) {
     return false;
