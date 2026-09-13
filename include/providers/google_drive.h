@@ -35,7 +35,8 @@ typedef struct {
 } UploadFileContext;
 
 bool google_drive_init(GoogleDriveProvider *provider);
-bool download_file(char *access_token, char *file_id, char *file_name);
+bool download_file(char *access_token, char *file_id, char *file_name,
+                   const char *cache_path);
 bool list_folder_files(char *access_token, char *folder_id,
                        LatestArchive *out_latest);
 bool upload_file(const char *acess_token, const char *folder_id,

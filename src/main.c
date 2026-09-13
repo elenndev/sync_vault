@@ -161,11 +161,13 @@ int main(int argc, char *argv[]) {
       printf("  Google Drive: Not authenticated (run 'auth')\n");
     }
 
+    const char *cache = cache_get_path();
     LatestArchive latest_archive = {0};
+
     if (list_folder_files(state->google_access_token, provider.folder_id,
                           &latest_archive)) {
       // download_file(provider.access_token, latest_archive.file_id,
-      //               latest_archive.file_name);
+      //               latest_archive.file_name, cache);
 
     } else {
       // upload file
@@ -176,12 +178,16 @@ int main(int argc, char *argv[]) {
         return 1;
       }
 
-      const char *cache = cache_get_path();
       char archive_path[1024];
       char archive_name[ARCHIVE_NAME_MAX];
 
-      if (!archive_create(state->vault_path, cache, archive_path, archive_name,
-                          password)) {
+      char encrypted_dir[512];
+      if (!ensure_encrypted_dir(cache, encrypted_dir, sizeof(encrypted_dir))) {
+        return false;
+      }
+
+      if (!archive_create(state->vault_path, encrypted_dir, archive_path,
+                          archive_name, password)) {
         fprintf(stderr, "Error: failed to create vault encrypted file\n");
         return 1;
       }
@@ -191,6 +197,8 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "Error: failed upload archive\n");
         return 1;
       }
+
+      archive_cleanup(archive_path);
     }
 
     return 0;

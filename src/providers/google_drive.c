@@ -38,7 +38,8 @@ static size_t write_callback(void *contents, size_t size, size_t nmemb,
   return total_size;
 }
 
-bool download_file(char *access_token, char *file_id, char *file_name) {
+bool download_file(char *access_token, char *file_id, char *file_name,
+                   const char *cache_path) {
   char url[2048];
   snprintf(url, sizeof(url),
            "https://www.googleapis.com/drive/v3/files/%s?alt=media", file_id);
@@ -47,11 +48,8 @@ bool download_file(char *access_token, char *file_id, char *file_name) {
     return false;
   }
 
-  char dir[512];
-  get_state_dir(dir, sizeof(dir));
-
   char file_path[512];
-  snprintf(file_path, sizeof(file_path), "%s/%s", dir, file_name);
+  snprintf(file_path, sizeof(file_path), "%s/%s", cache_path, file_name);
 
   FILE *output_file = fopen(file_path, "wb");
   if (!output_file) {

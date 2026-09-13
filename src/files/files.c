@@ -1,9 +1,12 @@
 #include "files/files.h"
 
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <time.h>
+#include <unistd.h>
 #define ARCHIVE_EXECUTABLE "crip-crypt"
 #define ARCHIVE_FILE_NAME "vault.tar.gz.age"
 
@@ -21,6 +24,38 @@ time_t archive_timestamp_to_time_t(const ArchiveTimestamp *ts) {
   tm_info.tm_isdst = -1;
 
   return mktime(&tm_info);
+}
+
+bool archive_cleanup(const char *archive_path) {
+  if (!archive_path || archive_path[0] == '\0') {
+    return false;
+  }
+
+  if (unlink(archive_path) != 0) {
+    if (errno == ENOENT) {
+      return true;
+    }
+    fprintf(stderr, "Failed to remove temp file: %s (%s)\n", archive_path,
+            strerror(errno));
+    return false;
+  }
+
+  return true;
+}
+
+bool ensure_encrypted_dir(const char *cache_path, char *out_path,
+                          size_t out_size) {
+  snprintf(out_path, out_size, "%s/encrypted", cache_path);
+
+  if (mkdir(out_path, 0755) != 0) {
+    struct stat st;
+    if (stat(out_path, &st) != 0 || !S_ISDIR(st.st_mode)) {
+      fprintf(stderr, "Failed to create directory: %s\n", out_path);
+      return false;
+    }
+  }
+
+  return true;
 }
 
 static bool archive_generate_name_at(char *buffer, size_t size,
