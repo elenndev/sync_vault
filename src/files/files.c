@@ -48,7 +48,7 @@ static bool archive_generate_name(char *buffer, size_t size) {
   return archive_generate_name_at(buffer, size, time(NULL));
 }
 
-static bool archive_parse_name(const char *filename, ArchiveTimestamp *out) {
+bool archive_parse_name(const char *filename, ArchiveTimestamp *out) {
   if (!filename || !out) {
     return false;
   }

@@ -1,5 +1,6 @@
 #include "providers/google_drive.h"
 #include "core/state.h"
+#include "files/files.h"
 #include "http/http_server.h"
 #include "utils/colors.h"
 #include <curl/curl.h>
@@ -12,6 +13,10 @@
 #include <strings.h>
 #include <time.h>
 #include <unistd.h>
+
+// i know this is terrible its not supose to be here etc i just need this to
+// work fn
+static const bool show_details = false;
 
 static GoogleDriveProvider *g_provider = NULL;
 
@@ -75,7 +80,8 @@ bool download_file(char *access_token, char *file_id, char *file_name) {
   return res == CURLE_OK;
 }
 
-bool list_folder_files(char *access_token, char *folder_id) {
+bool list_folder_files(char *access_token, char *folder_id,
+                       LatestArchive *out_latest) {
   char url[2048];
   snprintf(url, sizeof(url),
            "https://www.googleapis.com/drive/v3/files"
@@ -149,71 +155,164 @@ bool list_folder_files(char *access_token, char *folder_id) {
   int total_files = json_object_array_length(files);
   if (total_files == 0) {
     printf(COLOR_RED "There is no backup yet\n" STYLE_RESET);
+    json_object_put(root);
     return false;
   }
 
-  printf(STYLE_BOLD "\nFound %d items in folder\n" STYLE_RESET, total_files);
-  printf("========================================\n\n");
+  if (show_details) {
+    printf(STYLE_BOLD "\nFound %d items in folder\n" STYLE_RESET, total_files);
+    printf("========================================\n\n");
+
+    for (int i = 0; i < total_files; i++) {
+      struct json_object *file = json_object_array_get_idx(files, i);
+      if (!file)
+        continue;
+
+      struct json_object *name_obj, *id_obj, *mime_obj, *size_obj;
+
+      const char *name = NULL;
+      const char *file_id = NULL;
+      const char *mime_type = NULL;
+      double size = 0;
+      bool has_size = false;
+
+      if (json_object_object_get_ex(file, "name", &name_obj)) {
+        name = json_object_get_string(name_obj);
+      }
+
+      if (json_object_object_get_ex(file, "id", &id_obj)) {
+        file_id = json_object_get_string(id_obj);
+      }
+
+      if (json_object_object_get_ex(file, "mimeType", &mime_obj)) {
+        mime_type = json_object_get_string(mime_obj);
+      }
+
+      if (json_object_object_get_ex(file, "size", &size_obj)) {
+        size = json_object_get_double(size_obj);
+        has_size = true;
+      }
+
+      if (!name || !file_id || !mime_type)
+        continue;
+
+      if (strcmp(mime_type, "application/vnd.google-apps.folder") == 0) {
+        printf("%s (folder)\n", name);
+        printf("ID: %s\n", file_id);
+      } else {
+        if (has_size) {
+          if (size > 1024 * 1024) {
+            printf("%s (%.2f MB)\n", name, size / (1024.0 * 1024.0));
+          } else if (size > 1024) {
+            printf("%s (%.2f KB)\n", name, size / 1024.0);
+          } else {
+            printf("%s (%0.f bytes)\n", name, size);
+          }
+        } else {
+          if (strstr(mime_type, "application/vnd.google-apps.") != NULL) {
+            printf("%s (Google Workspace)\n", name);
+          } else {
+            printf("%s\n", name);
+          }
+        }
+        printf("   ID: %s\n", file_id);
+        printf("   Type: %s\n", mime_type);
+      }
+      printf("\n");
+    }
+  }
+
+  // find latest backup
+  LatestArchive latest = {0};
+  latest.timestamp = 0;
+  latest.found = false;
 
   for (int i = 0; i < total_files; i++) {
     struct json_object *file = json_object_array_get_idx(files, i);
     if (!file)
       continue;
 
-    struct json_object *name_obj, *id_obj, *mime_obj, *size_obj;
+    struct json_object *name_obj, *id_obj, *mime_obj;
 
     const char *name = NULL;
     const char *file_id = NULL;
     const char *mime_type = NULL;
-    double size = 0;
-    bool has_size = false;
 
     if (json_object_object_get_ex(file, "name", &name_obj)) {
       name = json_object_get_string(name_obj);
     }
-
     if (json_object_object_get_ex(file, "id", &id_obj)) {
       file_id = json_object_get_string(id_obj);
     }
-
     if (json_object_object_get_ex(file, "mimeType", &mime_obj)) {
       mime_type = json_object_get_string(mime_obj);
-    }
-
-    if (json_object_object_get_ex(file, "size", &size_obj)) {
-      size = json_object_get_double(size_obj);
-      has_size = true;
     }
 
     if (!name || !file_id || !mime_type)
       continue;
 
-    if (strcmp(mime_type, "application/vnd.google-apps.folder") == 0) {
-      printf("%s (folder)\n", name);
-      printf("ID: %s\n", file_id);
-    } else {
-      if (has_size) {
-        if (size > 1024 * 1024) {
-          printf("%s (%.2f MB)\n", name, size / (1024.0 * 1024.0));
-        } else if (size > 1024) {
-          printf("%s (%.2f KB)\n", name, size / 1024.0);
-        } else {
-          printf("%s (%0.f bytes)\n", name, size);
-        }
-      } else {
-        if (strstr(mime_type, "application/vnd.google-apps.") != NULL) {
-          printf("%s (Google Workspace)\n", name);
-        } else {
-          printf("%s\n", name);
-        }
-      }
-      printf("   ID: %s\n", file_id);
-      printf("   Type: %s\n", mime_type);
+    // skip Google Workspace files
+    if (strcmp(mime_type, "application/vnd.google-apps.folder") == 0)
+      continue;
+    if (strstr(mime_type, "application/vnd.google-apps.") != NULL)
+      continue;
+
+    ArchiveTimestamp ts;
+    if (!archive_parse_name(name, &ts)) {
+      continue; // não é um backup válido
     }
+
+    time_t file_time = archive_timestamp_to_time_t(&ts);
+    if (file_time == (time_t)-1)
+      continue;
+
+    if (!latest.found || file_time > latest.timestamp) {
+      latest.timestamp = file_time;
+      latest.found = true;
+      strncpy(latest.file_id, file_id, sizeof(latest.file_id) - 1);
+      latest.file_id[sizeof(latest.file_id) - 1] = '\0';
+      strncpy(latest.file_name, name, sizeof(latest.file_name) - 1);
+      latest.file_name[sizeof(latest.file_name) - 1] = '\0';
+    }
+  }
+
+  // show latest backup
+  if (latest.found) {
+    char date_str[64];
+    struct tm *tm_info = localtime(&latest.timestamp);
+    strftime(date_str, sizeof(date_str), "%Y-%m-%d %H:%M:%S", tm_info);
+
+    time_t now = time(NULL);
+    double seconds_ago = difftime(now, latest.timestamp);
+    char ago_str[64];
+
+    if (seconds_ago < 60) {
+      snprintf(ago_str, sizeof(ago_str), "just now");
+    } else if (seconds_ago < 3600) {
+      snprintf(ago_str, sizeof(ago_str), "%.0f minutes ago", seconds_ago / 60);
+    } else if (seconds_ago < 86400) {
+      snprintf(ago_str, sizeof(ago_str), "%.0f hours ago", seconds_ago / 3600);
+    } else {
+      snprintf(ago_str, sizeof(ago_str), "%.0f days ago", seconds_ago / 86400);
+    }
+
     printf("\n");
+    printf(STYLE_BOLD "Latest backup:\n" STYLE_RESET);
+    printf("   Date: %s\n", date_str);
+    printf("   Age:  %s\n", ago_str);
+    printf("   File: %s\n", latest.file_name);
+    printf("   ID:   %s\n", latest.file_id);
+    printf("\n");
+  } else {
+    printf(COLOR_YELLOW "No valid backups found in folder\n" STYLE_RESET);
   }
 
   json_object_put(root);
+
+  if (out_latest) {
+    *out_latest = latest;
+  }
+
   return true;
 }
 

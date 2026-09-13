@@ -1,6 +1,7 @@
 #ifndef GOOGLEDRIVE_H
 #define GOOGLEDRIVE_H
 
+#include "files/files.h"
 #include <curl/system.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -35,7 +36,8 @@ typedef struct {
 
 bool google_drive_init(GoogleDriveProvider *provider);
 bool download_file(char *access_token, char *file_id, char *file_name);
-bool list_folder_files(char *access_token, char *folder_id);
+bool list_folder_files(char *access_token, char *folder_id,
+                       LatestArchive *out_latest);
 bool upload_file(const char *acess_token, const char *folder_id,
                  const char *file_path, const char *file_name);
 bool google_drive_authenticate(GoogleDriveProvider *provider);

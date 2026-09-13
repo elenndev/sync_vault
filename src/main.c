@@ -161,8 +161,11 @@ int main(int argc, char *argv[]) {
       printf("  Google Drive: Not authenticated (run 'auth')\n");
     }
 
-    if (list_folder_files(state->google_access_token, provider.folder_id)) {
-      // download_file(provider.access_token, char *file_id, char *file_name);
+    LatestArchive latest_archive = {0};
+    if (list_folder_files(state->google_access_token, provider.folder_id,
+                          &latest_archive)) {
+      // download_file(provider.access_token, latest_archive.file_id,
+      //               latest_archive.file_name);
 
     } else {
       // upload file

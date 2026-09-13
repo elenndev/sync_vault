@@ -2,6 +2,7 @@
 #define FILES_H
 
 #include <stdbool.h>
+#include <time.h>
 
 #define ARCHIVE_EXECUTABLE "crip-crypt"
 #define ARCHIVE_FILE_NAME "vault.tar.gz.age"
@@ -18,6 +19,16 @@ typedef struct {
   int second;
 } ArchiveTimestamp;
 
+typedef struct {
+  char file_id[128];
+  char file_name[ARCHIVE_NAME_MAX];
+  time_t timestamp;
+  bool found;
+} LatestArchive;
+
+time_t archive_timestamp_to_time_t(const ArchiveTimestamp *ts);
+
+bool archive_parse_name(const char *filename, ArchiveTimestamp *out);
 bool archive_create(const char *vault_path, const char *output_directory,
                     char *archive_path, char *archive_name,
                     const char *password);
