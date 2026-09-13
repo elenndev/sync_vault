@@ -43,6 +43,20 @@ bool archive_cleanup(const char *archive_path) {
   return true;
 }
 
+bool ensure_decrypted_dir(const char *cache_path, char *out_path,
+                          size_t out_size) {
+  snprintf(out_path, out_size, "%s/decrypted", cache_path);
+  if (mkdir(out_path, 0755) != 0) {
+    struct stat st;
+    if (stat(out_path, &st) != 0 || !S_ISDIR(st.st_mode)) {
+      fprintf(stderr, "Failed to create directory: %s\n", out_path);
+      return false;
+    }
+  }
+
+  return true;
+}
+
 bool ensure_encrypted_dir(const char *cache_path, char *out_path,
                           size_t out_size) {
   snprintf(out_path, out_size, "%s/encrypted", cache_path);

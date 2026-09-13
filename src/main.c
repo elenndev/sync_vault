@@ -164,10 +164,15 @@ int main(int argc, char *argv[]) {
     const char *cache = cache_get_path();
     LatestArchive latest_archive = {0};
 
+    char decrypted_dir[512];
+    if (!ensure_decrypted_dir(cache, decrypted_dir, sizeof(decrypted_dir))) {
+      return false;
+    }
+
     if (list_folder_files(state->google_access_token, provider.folder_id,
                           &latest_archive)) {
-      // download_file(provider.access_token, latest_archive.file_id,
-      //               latest_archive.file_name, cache);
+      download_file(provider.access_token, latest_archive.file_id,
+                    latest_archive.file_name, decrypted_dir);
 
     } else {
       // upload file

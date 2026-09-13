@@ -40,6 +40,9 @@ static size_t write_callback(void *contents, size_t size, size_t nmemb,
 
 bool download_file(char *access_token, char *file_id, char *file_name,
                    const char *cache_path) {
+  printf("\n");
+  printf(STYLE_BOLD "Downloading file...\n" STYLE_RESET);
+
   char url[2048];
   snprintf(url, sizeof(url),
            "https://www.googleapis.com/drive/v3/files/%s?alt=media", file_id);
@@ -299,7 +302,6 @@ bool list_folder_files(char *access_token, char *folder_id,
     printf("   Date: %s\n", date_str);
     printf("   Age:  %s\n", ago_str);
     printf("   File: %s\n", latest.file_name);
-    printf("   ID:   %s\n", latest.file_id);
     printf("\n");
   } else {
     printf(COLOR_YELLOW "No valid backups found in folder\n" STYLE_RESET);
