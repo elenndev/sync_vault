@@ -56,7 +56,6 @@ bool ensure_decrypted_dir(const char *cache_path, char *out_path,
 
   return true;
 }
-
 bool ensure_encrypted_dir(const char *cache_path, char *out_path,
                           size_t out_size) {
   snprintf(out_path, out_size, "%s/encrypted", cache_path);

@@ -644,11 +644,6 @@ bool google_drive_authenticate(GoogleDriveProvider *provider) {
   if (load_tokens_from_state(provider)) {
     printf("Using saved tokens\n");
 
-    if (!is_token_expired(provider)) {
-      printf("Token still valid\n");
-      return true;
-    }
-
     printf("Token expired, attempting refresh...\n");
     if (google_drive_refresh_access_token(provider)) {
       printf("Refresh successful\n");

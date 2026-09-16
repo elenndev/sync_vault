@@ -164,32 +164,41 @@ int main(int argc, char *argv[]) {
     const char *cache = cache_get_path();
     LatestArchive latest_archive = {0};
 
-    char decrypted_dir[512];
-    if (!ensure_decrypted_dir(cache, decrypted_dir, sizeof(decrypted_dir))) {
+    char password[256];
+    if (!get_password(password, sizeof(password))) {
+      fprintf(stderr, "Error: failed to read password\n");
+      return 1;
+    }
+
+    char encrypted_dir[512];
+    if (!ensure_encrypted_dir(cache, encrypted_dir, sizeof(encrypted_dir))) {
       return false;
     }
 
+    // sync - upload or download
     if (list_folder_files(state->google_access_token, provider.folder_id,
                           &latest_archive)) {
-      download_file(provider.access_token, latest_archive.file_id,
-                    latest_archive.file_name, decrypted_dir);
+      printf(STYLE_BOLD "running 'sync', Downloading...\n" STYLE_RESET);
 
-    } else {
-      // upload file
-      printf(STYLE_BOLD "running 'sync'...\n" STYLE_RESET);
-      char password[256];
-      if (!get_password(password, sizeof(password))) {
-        fprintf(stderr, "Error: failed to read password\n");
+      download_file(provider.access_token, latest_archive.file_id,
+                    latest_archive.file_name, encrypted_dir);
+
+      char latest_archive_path[512];
+      snprintf(latest_archive_path, sizeof(latest_archive_path), "%s/%s",
+               encrypted_dir, latest_archive.file_name);
+
+      if (!archive_extract(latest_archive_path, state->vault_path, password)) {
+        fprintf(stderr,
+                "Error: failed to decrypt and extract vault encrypted file\n");
         return 1;
       }
 
+    } else {
+      // upload file
+      printf(STYLE_BOLD "running 'sync' - Uploading...\n" STYLE_RESET);
+
       char archive_path[1024];
       char archive_name[ARCHIVE_NAME_MAX];
-
-      char encrypted_dir[512];
-      if (!ensure_encrypted_dir(cache, encrypted_dir, sizeof(encrypted_dir))) {
-        return false;
-      }
 
       if (!archive_create(state->vault_path, encrypted_dir, archive_path,
                           archive_name, password)) {
