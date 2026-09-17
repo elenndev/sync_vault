@@ -95,9 +95,9 @@ int main(int argc, char *argv[]) {
     printf("  Last backup: ");
     if (state->last_backup_name[0]) {
       char backup_date[32];
-      time_t timestamp = archive_get_timestamp(state->last_backup_name);
 
-      if (timestamp_to_string(timestamp, backup_date, sizeof(backup_date))) {
+      if (timestamp_to_string(state->last_backup_timestamp, backup_date,
+                              sizeof(backup_date))) {
         printf(COLOR_GREEN "%s\n" STYLE_RESET, backup_date);
       }
 
