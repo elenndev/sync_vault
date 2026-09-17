@@ -29,6 +29,9 @@ typedef struct {
 time_t archive_timestamp_to_time_t(const ArchiveTimestamp *ts);
 
 bool archive_parse_name(const char *filename, ArchiveTimestamp *out);
+
+time_t archive_get_timestamp(const char *filename);
+
 bool archive_cleanup(const char *archive_path);
 bool ensure_encrypted_dir(const char *cache_path, char *out_path,
                           size_t out_size);

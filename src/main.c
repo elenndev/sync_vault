@@ -5,6 +5,7 @@
 #include "files/files.h"
 #include "providers/google_drive.h"
 #include "utils/colors.h"
+#include "utils/string_utils.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -86,14 +87,20 @@ int main(int argc, char *argv[]) {
 
     printf("  Last sync: ");
     if (state->last_sync[0]) {
-      printf(COLOR_GREEN "%s" STYLE_RESET, state->last_sync);
+      printf(COLOR_GREEN "%s\n" STYLE_RESET, state->last_sync);
     } else {
       printf(COLOR_RED "(never)\n" STYLE_RESET);
     }
 
     printf("  Last backup: ");
     if (state->last_backup_name[0]) {
-      printf(COLOR_GREEN "%s" STYLE_RESET, state->last_backup_name);
+      char backup_date[32];
+      time_t timestamp = archive_get_timestamp(state->last_backup_name);
+
+      if (timestamp_to_string(timestamp, backup_date, sizeof(backup_date))) {
+        printf(COLOR_GREEN "%s\n" STYLE_RESET, backup_date);
+      }
+
     } else {
       printf(COLOR_RED "(never)\n" STYLE_RESET);
     }
@@ -109,6 +116,7 @@ int main(int argc, char *argv[]) {
   if (strcmp(argv[1], "start") == 0) {
     printf("started\n");
 
+    SyncAction action = SYNC_NONE;
     GoogleDriveProvider provider = {0};
     State *state = state_get();
 
@@ -132,8 +140,14 @@ int main(int argc, char *argv[]) {
       return 1;
     }
 
-    printf(STYLE_BOLD "Status\n" STYLE_RESET);
+    const char *cache = cache_get_path();
+    LatestArchive latest_archive = {0};
+    list_folder_files(state->google_access_token, provider.folder_id,
+                      &latest_archive);
+    strcpy(state->last_backup_name, latest_archive.file_name);
+    state_save();
 
+    printf(STYLE_BOLD "Status\n" STYLE_RESET);
     printf("  Vault Path: ");
     if (state->vault_path[0]) {
       printf("%s\n", state->vault_path);
@@ -143,14 +157,17 @@ int main(int argc, char *argv[]) {
 
     printf("  Last sync: ");
     if (state->last_sync[0]) {
-      printf(COLOR_GREEN "%s" STYLE_RESET, state->last_sync);
+      printf(COLOR_GREEN "%s\n" STYLE_RESET, state->last_sync);
     } else {
       printf(COLOR_RED "(never)\n" STYLE_RESET);
     }
 
     printf("  Last backup: ");
-    if (state->last_backup_name[0]) {
-      printf(COLOR_GREEN "%s" STYLE_RESET, state->last_backup_name);
+    if (latest_archive.file_id[0]) {
+      char date[32];
+      timestamp_to_string(latest_archive.timestamp, date, sizeof(date));
+
+      printf(COLOR_GREEN "%s\n" STYLE_RESET, date);
     } else {
       printf(COLOR_RED "(never)\n" STYLE_RESET);
     }
@@ -160,9 +177,6 @@ int main(int argc, char *argv[]) {
     } else {
       printf("  Google Drive: Not authenticated (run 'auth')\n");
     }
-
-    const char *cache = cache_get_path();
-    LatestArchive latest_archive = {0};
 
     char password[256];
     if (!get_password(password, sizeof(password))) {
@@ -175,9 +189,23 @@ int main(int argc, char *argv[]) {
       return false;
     }
 
-    // sync - upload or download
-    if (list_folder_files(state->google_access_token, provider.folder_id,
-                          &latest_archive)) {
+    if (state->last_sync[0] == '\0') {
+      action = SYNC_DOWNLOAD;
+    }
+
+    if (action == SYNC_NONE) {
+      time_t local_sync_timestamp;
+      if (!string_to_timestamp(state->last_sync, &local_sync_timestamp)) {
+        fprintf(
+            stderr,
+            "Error: failed to convert local sync date string to timestamp\n");
+        return 1;
+      }
+
+      compare_syncs(local_sync_timestamp, latest_archive.timestamp, &action);
+    }
+
+    if (action == SYNC_DOWNLOAD) {
       printf(STYLE_BOLD "running 'sync', Downloading...\n" STYLE_RESET);
 
       download_file(provider.access_token, latest_archive.file_id,
@@ -192,6 +220,10 @@ int main(int argc, char *argv[]) {
                 "Error: failed to decrypt and extract vault encrypted file\n");
         return 1;
       }
+
+      time_t now = time(NULL);
+      timestamp_to_string(now, state->last_sync, sizeof(state->last_sync));
+      state_save();
 
     } else {
       // upload file
@@ -212,6 +244,9 @@ int main(int argc, char *argv[]) {
         return 1;
       }
 
+      time_t now = time(NULL);
+      timestamp_to_string(now, state->last_sync, sizeof(state->last_sync));
+      state_save();
       archive_cleanup(archive_path);
     }
 

@@ -4,19 +4,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <time.h>
 
 static State g_state;
-
-void get_state_dir(char *buffer, size_t size) {
-  const char *xdg = getenv("XDG_STATE_HOME");
-
-  if (xdg) {
-    snprintf(buffer, size, "%s/sync-vault", xdg);
-  } else {
-    const char *home = getenv("HOME");
-    snprintf(buffer, size, "%s/.local/state/sync-vault", home);
-  }
-}
 
 static void get_state_file(char *buffer, size_t size) {
   char dir[512];
@@ -34,6 +24,28 @@ static bool ensure_state_dir(void) {
   }
 
   return mkdir(dir, 0755) == 0;
+}
+
+void compare_syncs(time_t last_local_sync_timestamp, time_t backup_timestamp,
+                   SyncAction *action) {
+  if (last_local_sync_timestamp > backup_timestamp) {
+    *action = SYNC_UPLOAD;
+  }
+
+  if (last_local_sync_timestamp < backup_timestamp) {
+    *action = SYNC_DOWNLOAD;
+  }
+}
+
+void get_state_dir(char *buffer, size_t size) {
+  const char *xdg = getenv("XDG_STATE_HOME");
+
+  if (xdg) {
+    snprintf(buffer, size, "%s/sync-vault", xdg);
+  } else {
+    const char *home = getenv("HOME");
+    snprintf(buffer, size, "%s/.local/state/sync-vault", home);
+  }
 }
 
 bool state_load(void) {

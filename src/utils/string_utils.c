@@ -1,4 +1,43 @@
+#include "utils/string_utils.h"
+#include <stdbool.h>
+#include <stdio.h>
 #include <string.h>
+
+bool string_to_timestamp(const char *date_str, time_t *timestamp) {
+  if (date_str == NULL || timestamp == NULL) {
+    return false;
+  }
+
+  struct tm tm = {0};
+
+  if (sscanf(date_str, "%d-%d-%d %d:%d:%d", &tm.tm_year, &tm.tm_mon,
+             &tm.tm_mday, &tm.tm_hour, &tm.tm_min, &tm.tm_sec) != 6) {
+    return false;
+  }
+
+  tm.tm_year -= 1900;
+  tm.tm_mon -= 1;
+  tm.tm_isdst = -1;
+
+  *timestamp = mktime(&tm);
+
+  return *timestamp != (time_t)-1;
+}
+
+bool timestamp_to_string(time_t timestamp, char *buffer, size_t buffer_size) {
+  if (buffer == NULL || buffer_size == 0) {
+    return false;
+  }
+
+  struct tm *tm = localtime(&timestamp);
+
+  if (tm == NULL) {
+    return false;
+  }
+
+  return strftime(buffer, buffer_size, "%Y-%m-%d %H:%M:%S", tm) > 0;
+}
+
 void string_trim(char *str) {
   char *start = str;
 

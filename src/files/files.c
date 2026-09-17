@@ -148,6 +148,26 @@ bool archive_parse_name(const char *filename, ArchiveTimestamp *out) {
   return true;
 }
 
+time_t archive_get_timestamp(const char *filename) {
+  ArchiveTimestamp archive_timestamp;
+
+  if (!archive_parse_name(filename, &archive_timestamp)) {
+    return (time_t)-1;
+  }
+
+  struct tm tm = {
+      .tm_year = archive_timestamp.year - 1900,
+      .tm_mon = archive_timestamp.month - 1,
+      .tm_mday = archive_timestamp.day,
+      .tm_hour = archive_timestamp.hour,
+      .tm_min = archive_timestamp.minute,
+      .tm_sec = archive_timestamp.second,
+      .tm_isdst = -1,
+  };
+
+  return mktime(&tm);
+}
+
 static bool archive_is_valid_name(const char *filename) {
   ArchiveTimestamp ts;
   return archive_parse_name(filename, &ts);
