@@ -9,6 +9,7 @@ typedef struct {
   char last_backup_name[256];
   char last_backup_hash[65];
   char vault_path[512];
+  time_t last_backup_timestamp;
 
   char google_access_token[2048];
   char google_refresh_token[512];

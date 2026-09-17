@@ -112,6 +112,8 @@ bool state_save(void) {
 
   fprintf(file, "last_sync=%s\n", g_state.last_sync);
   fprintf(file, "last_backup_name=%s\n", g_state.last_backup_name);
+  fprintf(file, "last_backup_timestamp=%ld\n",
+          (long)g_state.last_backup_timestamp);
   fprintf(file, "last_backup_hash=%s\n", g_state.last_backup_hash);
   fprintf(file, "google_refresh_token=%s\n", g_state.google_refresh_token);
   fprintf(file, "google_access_token=%s\n", g_state.google_access_token);

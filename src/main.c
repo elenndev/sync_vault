@@ -246,6 +246,8 @@ int main(int argc, char *argv[]) {
 
       time_t now = time(NULL);
       timestamp_to_string(now, state->last_sync, sizeof(state->last_sync));
+      state->last_backup_timestamp = now;
+
       state_save();
       archive_cleanup(archive_path);
     }
