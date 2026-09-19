@@ -1,5 +1,6 @@
 #include "files/files.h"
 
+#include <dirent.h>
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -69,6 +70,26 @@ bool ensure_encrypted_dir(const char *cache_path, char *out_path,
   }
 
   return true;
+}
+
+bool is_directory_empty(const char *path) {
+  DIR *dir = opendir(path);
+  if (!dir) {
+    return false;
+  }
+
+  struct dirent *entry;
+  bool empty = true;
+
+  while ((entry = readdir(dir)) != NULL) {
+    if (strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0) {
+      empty = false;
+      break;
+    }
+  }
+
+  closedir(dir);
+  return empty;
 }
 
 static bool archive_generate_name_at(char *buffer, size_t size,

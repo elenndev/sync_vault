@@ -5,6 +5,7 @@
 #include "files/files.h"
 #include "providers/google_drive.h"
 #include "utils/colors.h"
+#include "utils/files.h"
 #include "utils/string_utils.h"
 #include "utils/time_utils.h"
 #include <stdio.h>
@@ -242,7 +243,12 @@ int main(int argc, char *argv[]) {
       state_save();
 
     } else {
-      // upload file
+
+      if (is_directory_empty(state->vault_path)) {
+        printf(STYLE_BOLD
+               "Empty vault folder, cancelling upload...\n" STYLE_RESET);
+        return 0;
+      }
       printf(STYLE_BOLD "running 'sync' - Uploading...\n" STYLE_RESET);
 
       char archive_path[1024];
