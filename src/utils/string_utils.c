@@ -1,9 +1,26 @@
 #include "utils/string_utils.h"
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
-bool string_to_timestamp(const char *date_str, time_t *timestamp) {
+bool string_to_timestamp(const char *str, time_t *timestamp) {
+  if (str == NULL || timestamp == NULL) {
+    return false;
+  }
+
+  char *endptr;
+  long long value = strtoll(str, &endptr, 10);
+
+  if (endptr == str || *endptr != '\0') {
+    return false;
+  }
+
+  *timestamp = (time_t)value;
+  return true;
+}
+
+bool string_date_to_timestamp(const char *date_str, time_t *timestamp) {
   if (date_str == NULL || timestamp == NULL) {
     return false;
   }

@@ -86,8 +86,12 @@ int main(int argc, char *argv[]) {
     printf(STYLE_BOLD "Status\n" STYLE_RESET);
 
     printf("  Last sync: ");
-    if (state->last_sync[0]) {
-      printf(COLOR_GREEN "%s\n" STYLE_RESET, state->last_sync);
+    if (state->last_sync) {
+      char sync_date[32];
+      if (timestamp_to_string(state->last_sync, sync_date, sizeof(sync_date))) {
+        printf(COLOR_GREEN "%s\n" STYLE_RESET, sync_date);
+      }
+
     } else {
       printf(COLOR_RED "(never)\n" STYLE_RESET);
     }
@@ -155,8 +159,11 @@ int main(int argc, char *argv[]) {
     }
 
     printf("  Last sync: ");
-    if (state->last_sync[0]) {
-      printf(COLOR_GREEN "%s\n" STYLE_RESET, state->last_sync);
+    if (state->last_sync) {
+      char date[32];
+      timestamp_to_string(state->last_sync, date, sizeof(date));
+
+      printf(COLOR_GREEN "%s\n" STYLE_RESET, date);
     } else {
       printf(COLOR_RED "(never)\n" STYLE_RESET);
     }
@@ -188,20 +195,12 @@ int main(int argc, char *argv[]) {
       return false;
     }
 
-    if (state->last_sync[0] == '\0') {
+    if (state->last_sync == '\0') {
       action = SYNC_DOWNLOAD;
     }
 
     if (action == SYNC_NONE) {
-      time_t local_sync_timestamp;
-      if (!string_to_timestamp(state->last_sync, &local_sync_timestamp)) {
-        fprintf(
-            stderr,
-            "Error: failed to convert local sync date string to timestamp\n");
-        return 1;
-      }
-
-      compare_syncs(local_sync_timestamp, latest_archive.timestamp, &action);
+      compare_syncs(state->last_sync, latest_archive.timestamp, &action);
     }
 
     if (action == SYNC_DOWNLOAD) {
@@ -221,7 +220,7 @@ int main(int argc, char *argv[]) {
       }
 
       time_t now = time(NULL);
-      timestamp_to_string(now, state->last_sync, sizeof(state->last_sync));
+      state->last_sync = now;
       state_save();
 
     } else {
@@ -244,8 +243,8 @@ int main(int argc, char *argv[]) {
       }
 
       time_t now = time(NULL);
-      timestamp_to_string(now, state->last_sync, sizeof(state->last_sync));
       state->last_backup_timestamp = now;
+      state->last_sync = now;
 
       state_save();
       archive_cleanup(archive_path);

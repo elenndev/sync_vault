@@ -5,7 +5,7 @@
 #include <stddef.h>
 #include <time.h>
 typedef struct {
-  char last_sync[64];
+  time_t last_sync;
   char vault_path[512];
   time_t last_backup_timestamp;
 

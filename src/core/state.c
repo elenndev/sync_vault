@@ -77,7 +77,16 @@ bool state_load(void) {
     value[strcspn(value, "\r\n")] = '\0';
 
     if (strcmp(key, "last_sync") == 0) {
-      snprintf(g_state.last_sync, sizeof(g_state.last_sync), "%s", value);
+      if (strcmp(value, "0") == 0) {
+        g_state.last_sync = 0;
+      } else {
+        if (!string_to_timestamp(value, &g_state.last_sync)) {
+          fprintf(stderr, "Warning: failed to parse last sync timestamp: %s\n",
+                  value);
+          g_state.last_sync = 0;
+        }
+      }
+
     } else if (strcmp(key, "last_backup_timestamp") == 0) {
       if (!string_to_timestamp(value, &g_state.last_backup_timestamp)) {
         fprintf(stderr, "Warning: failed to parse last_backup_timestamp: %s\n",
@@ -111,7 +120,7 @@ bool state_save(void) {
     return false;
   }
 
-  fprintf(file, "last_sync=%s\n", g_state.last_sync);
+  fprintf(file, "last_sync=%ld\n", (long)g_state.last_sync);
   fprintf(file, "last_backup_timestamp=%ld\n",
           (long)g_state.last_backup_timestamp);
   fprintf(file, "google_refresh_token=%s\n", g_state.google_refresh_token);
