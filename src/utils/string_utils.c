@@ -1,3 +1,4 @@
+#define _XOPEN_SOURCE
 #include "utils/string_utils.h"
 #include <stdbool.h>
 #include <stdio.h>
@@ -26,16 +27,17 @@ bool string_date_to_timestamp(const char *date_str, time_t *timestamp) {
   }
 
   struct tm tm = {0};
+  char *end = strptime(date_str, "%Y-%m-%d %H:%M:%S", &tm);
 
-  if (sscanf(date_str, "%d-%d-%d %d:%d:%d", &tm.tm_year, &tm.tm_mon,
-             &tm.tm_mday, &tm.tm_hour, &tm.tm_min, &tm.tm_sec) != 6) {
-    return false;
+  if (!end || *end != '\0') {
+    memset(&tm, 0, sizeof(tm));
+    end = strptime(date_str, "%Y-%m-%d %I:%M:%S %p", &tm);
+    if (!end || *end != '\0') {
+      return false;
+    }
   }
 
-  tm.tm_year -= 1900;
-  tm.tm_mon -= 1;
   tm.tm_isdst = -1;
-
   *timestamp = mktime(&tm);
 
   return *timestamp != (time_t)-1;
@@ -52,7 +54,7 @@ bool timestamp_to_string(time_t timestamp, char *buffer, size_t buffer_size) {
     return false;
   }
 
-  return strftime(buffer, buffer_size, "%Y-%m-%d %H:%M:%S", tm) > 0;
+  return strftime(buffer, buffer_size, "%Y-%m-%d %I:%M:%S %p", tm) > 0;
 }
 
 void string_trim(char *str) {
