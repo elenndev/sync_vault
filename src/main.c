@@ -93,7 +93,7 @@ int main(int argc, char *argv[]) {
     }
 
     printf("  Last backup: ");
-    if (state->last_backup_name[0]) {
+    if (state->last_backup_timestamp) {
       char backup_date[32];
 
       if (timestamp_to_string(state->last_backup_timestamp, backup_date,
@@ -144,7 +144,6 @@ int main(int argc, char *argv[]) {
     LatestArchive latest_archive = {0};
     list_folder_files(state->google_access_token, provider.folder_id,
                       &latest_archive);
-    strcpy(state->last_backup_name, latest_archive.file_name);
     state_save();
 
     printf(STYLE_BOLD "Status\n" STYLE_RESET);

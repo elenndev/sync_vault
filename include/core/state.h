@@ -6,8 +6,6 @@
 #include <time.h>
 typedef struct {
   char last_sync[64];
-  char last_backup_name[256];
-  char last_backup_hash[65];
   char vault_path[512];
   time_t last_backup_timestamp;
 

@@ -1,4 +1,5 @@
 #include "core/state.h"
+#include "utils/string_utils.h"
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -77,12 +78,12 @@ bool state_load(void) {
 
     if (strcmp(key, "last_sync") == 0) {
       snprintf(g_state.last_sync, sizeof(g_state.last_sync), "%s", value);
-    } else if (strcmp(key, "last_backup_name") == 0) {
-      snprintf(g_state.last_backup_name, sizeof(g_state.last_backup_name), "%s",
-               value);
-    } else if (strcmp(key, "last_backup_hash") == 0) {
-      snprintf(g_state.last_backup_hash, sizeof(g_state.last_backup_hash), "%s",
-               value);
+    } else if (strcmp(key, "last_backup_timestamp") == 0) {
+      if (!string_to_timestamp(value, &g_state.last_backup_timestamp)) {
+        fprintf(stderr, "Warning: failed to parse last_backup_timestamp: %s\n",
+                value);
+        g_state.last_backup_timestamp = 0;
+      }
     } else if (strcmp(key, "google_access_token") == 0) {
       snprintf(g_state.google_access_token, sizeof(g_state.google_access_token),
                "%s", value);
@@ -111,10 +112,8 @@ bool state_save(void) {
   }
 
   fprintf(file, "last_sync=%s\n", g_state.last_sync);
-  fprintf(file, "last_backup_name=%s\n", g_state.last_backup_name);
   fprintf(file, "last_backup_timestamp=%ld\n",
           (long)g_state.last_backup_timestamp);
-  fprintf(file, "last_backup_hash=%s\n", g_state.last_backup_hash);
   fprintf(file, "google_refresh_token=%s\n", g_state.google_refresh_token);
   fprintf(file, "google_access_token=%s\n", g_state.google_access_token);
 
