@@ -6,6 +6,7 @@
 #include "providers/google_drive.h"
 #include "utils/colors.h"
 #include "utils/string_utils.h"
+#include "utils/time_utils.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -184,12 +185,6 @@ int main(int argc, char *argv[]) {
       printf("  Google Drive: Not authenticated (run 'auth')\n");
     }
 
-    char password[256];
-    if (!get_password(password, sizeof(password))) {
-      fprintf(stderr, "Error: failed to read password\n");
-      return 1;
-    }
-
     char encrypted_dir[512];
     if (!ensure_encrypted_dir(cache, encrypted_dir, sizeof(encrypted_dir))) {
       return false;
@@ -197,6 +192,29 @@ int main(int argc, char *argv[]) {
 
     if (state->last_sync == '\0') {
       action = SYNC_DOWNLOAD;
+    }
+
+    if (is_same_day(state->last_sync, state->last_backup_timestamp)) {
+
+      char last_sync_date[32];
+      timestamp_to_hour(state->last_sync, last_sync_date,
+                        sizeof(last_sync_date));
+
+      char prompt[256];
+      snprintf(prompt, sizeof(prompt),
+               "Last sync was today at %s. Run another sync anyway?",
+               last_sync_date);
+
+      if (!get_user_confirm(prompt)) {
+        printf("Skipping sync.\n");
+        return 0;
+      }
+    }
+
+    char password[256];
+    if (!get_password(password, sizeof(password))) {
+      fprintf(stderr, "Error: failed to read password\n");
+      return 1;
     }
 
     if (action == SYNC_NONE) {

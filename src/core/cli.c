@@ -42,3 +42,61 @@ bool get_password(char *password, size_t size) {
 
   return true;
 }
+
+bool get_user_confirm(const char *prompt) {
+  struct termios old_term, new_term;
+
+  if (tcgetattr(STDIN_FILENO, &old_term) != 0) {
+    return false;
+  }
+
+  new_term = old_term;
+  new_term.c_lflag &= ~(ICANON | ECHO);
+  new_term.c_cc[VMIN] = 1;
+  new_term.c_cc[VTIME] = 0;
+
+  if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &new_term) != 0) {
+    return false;
+  }
+
+  printf("%s [y/n] ", prompt);
+  fflush(stdout);
+
+  char c = 0;
+  bool got_answer = false;
+
+  while (1) {
+    char ch;
+    ssize_t n = read(STDIN_FILENO, &ch, 1);
+    if (n != 1)
+      break;
+
+    if (ch == '\n' || ch == '\r') {
+      break; // Enter
+    }
+
+    if (ch == 0x7F || ch == 0x08) {
+      if (got_answer) {
+        printf("\b \b");
+        fflush(stdout);
+        c = 0;
+        got_answer = false;
+      }
+      continue;
+    }
+
+    if (!got_answer) {
+      c = ch;
+      got_answer = true;
+      printf("%c", c);
+      fflush(stdout);
+    }
+  }
+
+  tcsetattr(STDIN_FILENO, TCSAFLUSH, &old_term);
+  printf("\n");
+
+  if (!got_answer)
+    return false;
+  return c == 'y' || c == 'Y';
+}
