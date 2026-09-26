@@ -6,36 +6,20 @@ Currently using Google Drive as the storage provider, but I plan to add support 
 `sync-vault` handles the full lifecycle of your encrypted vault backups:
 
 **Upload flow:**
+
 1. Compress and encrypt the local vault folder
 2. Upload the encrypted archive to Google Drive
 3. Clean up the temporary archive
 
 **Restore flow:**
+
 1. Download the chosen backup from Google Drive
 2. Decrypt and extract it back into the local vault
 3. Clean up the temporary archive
 
 Encryption is handled by [crip-crypt](https://github.com/elenndev/crip-crypt).
 
-## Installation
-
-**Install**
-```bash
-make install
-```
-or
-```bash
-make install PREFIX=$HOME/.local
-```
-
-**Uninstall**
-```bash
-make uninstall
-```
----
-
 ## Dependencies
-
 **System libraries:**
 
 ```bash
@@ -56,3 +40,13 @@ This tool depends on [crip-crypt](https://github.com/elenndev/crip-crypt) for co
 cargo install --git https://github.com/elenndev/crip-crypt.git
 cargo uninstall crip-crypt
 ```
+
+## Development
+When developing `sync-vault`, use [Bear](https://github.com/rizsotto/Bear) to generate `compile_commands.json` for `clangd`.
+
+If the project uses `make`, run:
+
+```bash
+bear -- make
+```
+
