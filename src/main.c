@@ -249,6 +249,7 @@ int main(int argc, char *argv[]) {
                encrypted_dir, latest_archive.file_name);
 
       if (!archive_extract(latest_archive_path, state->vault_path, password)) {
+        archive_cleanup(latest_archive_path);
         fprintf(stderr,
                 "Error: failed to decrypt and extract vault encrypted file\n");
         return 1;
