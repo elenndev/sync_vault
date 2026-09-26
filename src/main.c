@@ -210,7 +210,8 @@ int main(int argc, char *argv[]) {
       action = SYNC_DOWNLOAD;
     }
 
-    if (is_same_day(state->last_sync, state->last_backup_timestamp)) {
+    if (state->last_sync != '\0' &&
+        is_same_day(state->last_sync, state->last_backup_timestamp)) {
 
       char last_sync_date[32];
       timestamp_to_hour(state->last_sync, last_sync_date,
