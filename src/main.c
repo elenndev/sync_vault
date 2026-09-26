@@ -210,8 +210,9 @@ int main(int argc, char *argv[]) {
       action = SYNC_DOWNLOAD;
     }
 
-    if (state->last_sync != '\0' &&
-        is_same_day(state->last_sync, state->last_backup_timestamp)) {
+    time_t now = time(NULL);
+
+    if (state->last_sync != '\0' && is_same_day(state->last_sync, now)) {
 
       char last_sync_date[32];
       timestamp_to_hour(state->last_sync, last_sync_date,
@@ -255,7 +256,6 @@ int main(int argc, char *argv[]) {
         return 1;
       }
 
-      time_t now = time(NULL);
       state->last_sync = now;
       state->last_backup_timestamp = latest_archive.timestamp;
       state_save();
