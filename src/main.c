@@ -256,9 +256,11 @@ int main(int argc, char *argv[]) {
 
       time_t now = time(NULL);
       state->last_sync = now;
+      state->last_backup_timestamp = latest_archive.timestamp;
       state_save();
+    }
 
-    } else {
+    if (action == SYNC_UPLOAD) {
 
       if (is_directory_empty(state->vault_path)) {
         printf(STYLE_BOLD
