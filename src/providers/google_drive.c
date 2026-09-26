@@ -417,8 +417,6 @@ static bool load_tokens_from_state(GoogleDriveProvider *provider) {
 }
 
 static bool save_tokens_to_state(GoogleDriveProvider *provider) {
-  printf("=== Saving tokens to state ===\n");
-
   State *state = state_get();
 
   if (!state) {
@@ -434,15 +432,10 @@ static bool save_tokens_to_state(GoogleDriveProvider *provider) {
           sizeof(state->google_refresh_token) - 1);
   state->google_refresh_token[sizeof(state->google_refresh_token) - 1] = '\0';
 
-  printf("Calling state_save()...\n");
-
   if (!state_save()) {
     fprintf(stderr, "state_save() failed\n");
     return false;
   }
-
-  printf("state_save() succeeded\n");
-  printf("=== Tokens saved successfully ===\n");
 
   return true;
 }

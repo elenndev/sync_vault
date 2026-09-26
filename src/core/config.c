@@ -214,8 +214,6 @@ bool load_credentials(GoogleDriveProvider *provider) {
 }
 
 bool load_vault_config(State *state) {
-  printf("=== Start loading vault config ===\n");
-
   const char *env_vault_path = getenv("VAULT_PATH");
 
   if (env_vault_path) {

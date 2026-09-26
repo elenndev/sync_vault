@@ -135,8 +135,6 @@ int main(int argc, char *argv[]) {
   }
 
   if (strcmp(argv[1], "start") == 0) {
-    printf("started\n");
-
     SyncAction action = SYNC_NONE;
     GoogleDriveProvider provider = {0};
     State *state = state_get();
