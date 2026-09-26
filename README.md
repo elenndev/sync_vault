@@ -50,3 +50,48 @@ If the project uses `make`, run:
 bear -- make
 ```
 
+## Install
+Build and install the binary to `/usr/local/bin`:
+
+```bash
+sudo make install
+```
+
+After that, `sync-vault` is available from any directory:
+
+```bash
+sync-vault
+```
+
+**Installing without `sudo`:**
+
+To install into `~/.local/bin` instead (make sure it's in your `PATH`):
+
+```bash
+make install PREFIX=$HOME/.local
+```
+
+If `~/.local/bin` is not in your `PATH`, add this to your `~/.bashrc`:
+
+```bash
+export PATH="$HOME/.local/bin:$PATH"
+```
+
+Then reload it:
+
+```bash
+source ~/.bashrc
+```
+
+## Uninstall
+Remove the installed binary:
+
+```bash
+sudo make uninstall
+```
+
+If you installed with a custom `PREFIX`, pass it along:
+
+```bash
+make uninstall PREFIX=$HOME/.local
+```
