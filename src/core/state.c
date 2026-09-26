@@ -49,9 +49,9 @@ void get_state_dir(char *buffer, size_t size) {
   }
 }
 
-bool state_load(void) {
+StateLoadResult state_load(void) {
   if (!ensure_state_dir()) {
-    return false;
+    return STATE_LOAD_ERR_DIR;
   }
 
   char path[512];
@@ -60,8 +60,7 @@ bool state_load(void) {
   FILE *file = fopen(path, "r");
   if (!file) {
     memset(&g_state, 0, sizeof(g_state));
-    printf("run auth command\n");
-    return true;
+    return STATE_LOAD_NOT_FOUND_AUTH_NEED;
   }
 
   char line[512];
@@ -103,7 +102,7 @@ bool state_load(void) {
   }
 
   fclose(file);
-  return true;
+  return STATE_LOAD_OK;
 }
 
 bool state_save(void) {

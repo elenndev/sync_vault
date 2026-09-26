@@ -13,9 +13,23 @@
 #include <string.h>
 
 int main(int argc, char *argv[]) {
-  if (!state_load()) {
-    fprintf(stderr, "Error: Failed to load state\n");
-    return 1;
+  switch (state_load()) {
+  case STATE_LOAD_OK:
+    break;
+
+  case STATE_LOAD_NOT_FOUND_AUTH_NEED:
+
+    printf(COLOR_RED "Not authenticated yet. Run the 'auth' command to get "
+                     "started.\n" STYLE_RESET);
+    printf("run: \n%s auth\n", argv[0]);
+
+    return 0;
+    break;
+
+  case STATE_LOAD_ERR_DIR:
+    printf(COLOR_RED "Failed to load state\n" STYLE_RESET);
+    return 0;
+    break;
   }
 
   if (!cache_init()) {

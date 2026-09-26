@@ -16,10 +16,15 @@ typedef struct {
 } State;
 
 typedef enum { SYNC_NONE, SYNC_DOWNLOAD, SYNC_UPLOAD } SyncAction;
+typedef enum {
+  STATE_LOAD_OK = 0,
+  STATE_LOAD_ERR_DIR,
+  STATE_LOAD_NOT_FOUND_AUTH_NEED,
+} StateLoadResult;
 
 typedef void (*SyncCallback)(void);
 
-bool state_load();
+StateLoadResult state_load();
 
 bool state_save();
 
