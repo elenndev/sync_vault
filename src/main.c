@@ -99,6 +99,32 @@ int main(int argc, char *argv[]) {
 
   if (strcmp(argv[1], "status") == 0) {
     State *state = state_get();
+    GoogleDriveProvider provider = {0};
+
+    strncpy(provider.access_token, state->google_access_token,
+            sizeof(provider.access_token) - 1);
+    provider.access_token[sizeof(provider.access_token) - 1] = '\0';
+
+    strncpy(provider.refresh_token, state->google_refresh_token,
+            sizeof(provider.refresh_token) - 1);
+    provider.refresh_token[sizeof(provider.refresh_token) - 1] = '\0';
+
+    if (!load_credentials(&provider)) {
+      return 1;
+    }
+
+    if (!google_drive_refresh_access_token(&provider)) {
+      return 1;
+    }
+
+    if (!load_vault_config(state)) {
+      return 1;
+    }
+
+    LatestArchive latest_archive = {0};
+    list_folder_files(state->google_access_token, provider.folder_id,
+                      &latest_archive);
+    state_save();
 
     printf(STYLE_BOLD "Status\n" STYLE_RESET);
 
