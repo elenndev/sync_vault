@@ -101,23 +101,7 @@ int main(int argc, char *argv[]) {
     State *state = state_get();
     GoogleDriveProvider provider = {0};
 
-    strncpy(provider.access_token, state->google_access_token,
-            sizeof(provider.access_token) - 1);
-    provider.access_token[sizeof(provider.access_token) - 1] = '\0';
-
-    strncpy(provider.refresh_token, state->google_refresh_token,
-            sizeof(provider.refresh_token) - 1);
-    provider.refresh_token[sizeof(provider.refresh_token) - 1] = '\0';
-
-    if (!load_credentials(&provider)) {
-      return 1;
-    }
-
-    if (!google_drive_refresh_access_token(&provider)) {
-      return 1;
-    }
-
-    if (!load_vault_config(state)) {
+    if (!status_load(state, &provider)) {
       return 1;
     }
 
@@ -162,26 +146,11 @@ int main(int argc, char *argv[]) {
 
   if (strcmp(argv[1], "start") == 0) {
     SyncAction action = SYNC_NONE;
+
     GoogleDriveProvider provider = {0};
     State *state = state_get();
 
-    strncpy(provider.access_token, state->google_access_token,
-            sizeof(provider.access_token) - 1);
-    provider.access_token[sizeof(provider.access_token) - 1] = '\0';
-
-    strncpy(provider.refresh_token, state->google_refresh_token,
-            sizeof(provider.refresh_token) - 1);
-    provider.refresh_token[sizeof(provider.refresh_token) - 1] = '\0';
-
-    if (!load_credentials(&provider)) {
-      return 1;
-    }
-
-    if (!google_drive_refresh_access_token(&provider)) {
-      return 1;
-    }
-
-    if (!load_vault_config(state)) {
+    if (!status_load(state, &provider)) {
       return 1;
     }
 

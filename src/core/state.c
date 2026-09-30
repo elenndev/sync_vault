@@ -1,4 +1,6 @@
 #include "core/state.h"
+#include "core/config.h"
+#include "providers/google_drive.h"
 #include "utils/string_utils.h"
 #include <stddef.h>
 #include <stdio.h>
@@ -126,6 +128,30 @@ bool state_save(void) {
   fprintf(file, "google_access_token=%s\n", g_state.google_access_token);
 
   fclose(file);
+  return true;
+}
+
+bool status_load(State *state, GoogleDriveProvider *provider) {
+  strncpy(provider->access_token, state->google_access_token,
+          sizeof(provider->access_token) - 1);
+  provider->access_token[sizeof(provider->access_token) - 1] = '\0';
+
+  strncpy(provider->refresh_token, state->google_refresh_token,
+          sizeof(provider->refresh_token) - 1);
+  provider->refresh_token[sizeof(provider->refresh_token) - 1] = '\0';
+
+  if (!load_credentials(provider)) {
+    return false;
+  }
+
+  if (!google_drive_refresh_access_token(provider)) {
+    return false;
+  }
+
+  if (!load_vault_config(state)) {
+    return false;
+  }
+
   return true;
 }
 

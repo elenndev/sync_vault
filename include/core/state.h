@@ -1,6 +1,7 @@
 #ifndef STATE_H
 #define STATE_H
 
+#include "providers/google_drive.h"
 #include <stdbool.h>
 #include <stddef.h>
 #include <time.h>
@@ -32,6 +33,8 @@ void compare_syncs(time_t last_local_sync_timestamp, time_t backup_timestamp,
                    SyncAction *action);
 
 void get_state_dir(char *buffer, size_t size);
+
+bool status_load(State *state, GoogleDriveProvider *provider);
 
 State *state_get(void);
 
