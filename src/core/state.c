@@ -195,4 +195,22 @@ bool status_load(State *state, GoogleDriveProvider *provider,
   return true;
 }
 
+void report_sync_direction(SyncAction *action,
+                           const LatestArchive *latest_archive,
+                           time_t last_sync) {
+  compare_syncs(last_sync, latest_archive->timestamp, action);
+
+  if (*action == SYNC_DOWNLOAD) {
+    printf(STYLE_BOLD "Sync: DOWNLOAD (remote → local)\n"
+                      "Your local copy will be updated with the latest "
+                      "archive.\n" STYLE_RESET);
+  }
+
+  if (*action == SYNC_UPLOAD) {
+    printf(STYLE_BOLD "Sync: UPLOAD (local → remote)\n"
+                      "The remote archive will be updated with your local "
+                      "files.\n" STYLE_RESET);
+  }
+}
+
 State *state_get(void) { return &g_state; }

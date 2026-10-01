@@ -6,7 +6,6 @@
 #include "providers/google_drive.h"
 #include "utils/colors.h"
 #include "utils/files.h"
-#include "utils/string_utils.h"
 #include "utils/time_utils.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -99,11 +98,21 @@ int main(int argc, char *argv[]) {
 
   if (strcmp(argv[1], "status") == 0) {
     State *state = state_get();
+    SyncAction action = SYNC_NONE;
     GoogleDriveProvider provider = {0};
     LatestArchive latest_archive = {0};
 
     if (!status_load(state, &provider, &latest_archive)) {
       return 1;
+    }
+
+    if (state->last_sync == '\0') {
+      action = SYNC_DOWNLOAD;
+      printf(STYLE_BOLD "Sync will run Download...\n" STYLE_RESET);
+    }
+
+    if (action == SYNC_NONE) {
+      report_sync_direction(&action, &latest_archive, state->last_sync);
     }
 
     return 0;
@@ -132,10 +141,13 @@ int main(int argc, char *argv[]) {
       action = SYNC_DOWNLOAD;
     }
 
+    if (action == SYNC_NONE) {
+      report_sync_direction(&action, &latest_archive, state->last_sync);
+    }
+
     time_t now = time(NULL);
 
     if (state->last_sync != '\0' && is_same_day(state->last_sync, now)) {
-
       char last_sync_date[32];
       timestamp_to_hour(state->last_sync, last_sync_date,
                         sizeof(last_sync_date));
@@ -155,10 +167,6 @@ int main(int argc, char *argv[]) {
     if (!get_password(password, sizeof(password))) {
       fprintf(stderr, "Error: failed to read password\n");
       return 1;
-    }
-
-    if (action == SYNC_NONE) {
-      compare_syncs(state->last_sync, latest_archive.timestamp, &action);
     }
 
     if (action == SYNC_DOWNLOAD) {

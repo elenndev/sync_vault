@@ -37,6 +37,10 @@ void get_state_dir(char *buffer, size_t size);
 bool status_load(State *state, GoogleDriveProvider *provider,
                  LatestArchive *latest_archive);
 
+void report_sync_direction(SyncAction *action,
+                           const LatestArchive *latest_archive,
+                           time_t last_sync);
+
 State *state_get(void);
 
 #endif
