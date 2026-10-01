@@ -34,7 +34,8 @@ void compare_syncs(time_t last_local_sync_timestamp, time_t backup_timestamp,
 
 void get_state_dir(char *buffer, size_t size);
 
-bool status_load(State *state, GoogleDriveProvider *provider);
+bool status_load(State *state, GoogleDriveProvider *provider,
+                 LatestArchive *latest_archive);
 
 State *state_get(void);
 

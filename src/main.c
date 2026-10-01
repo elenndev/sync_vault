@@ -100,47 +100,12 @@ int main(int argc, char *argv[]) {
   if (strcmp(argv[1], "status") == 0) {
     State *state = state_get();
     GoogleDriveProvider provider = {0};
+    LatestArchive latest_archive = {0};
 
-    if (!status_load(state, &provider)) {
+    if (!status_load(state, &provider, &latest_archive)) {
       return 1;
     }
 
-    LatestArchive latest_archive = {0};
-    list_folder_files(state->google_access_token, provider.folder_id,
-                      &latest_archive);
-    state_save();
-
-    printf(STYLE_BOLD "Status\n" STYLE_RESET);
-
-    printf("  Last sync: ");
-    if (state->last_sync) {
-      char sync_date[32];
-      if (timestamp_to_string(state->last_sync, sync_date, sizeof(sync_date))) {
-        printf(COLOR_GREEN "%s\n" STYLE_RESET, sync_date);
-      }
-
-    } else {
-      printf(COLOR_RED "(never)\n" STYLE_RESET);
-    }
-
-    printf("  Last backup: ");
-    if (state->last_backup_timestamp) {
-      char backup_date[32];
-
-      if (timestamp_to_string(state->last_backup_timestamp, backup_date,
-                              sizeof(backup_date))) {
-        printf(COLOR_GREEN "%s\n" STYLE_RESET, backup_date);
-      }
-
-    } else {
-      printf(COLOR_RED "(never)\n" STYLE_RESET);
-    }
-
-    if (state->google_access_token[0]) {
-      printf("  Google Drive: Authenticated\n");
-    } else {
-      printf("  Google Drive: Not authenticated (run 'auth')\n");
-    }
     return 0;
   }
 
@@ -150,49 +115,13 @@ int main(int argc, char *argv[]) {
     GoogleDriveProvider provider = {0};
     State *state = state_get();
 
-    if (!status_load(state, &provider)) {
+    LatestArchive latest_archive = {0};
+
+    if (!status_load(state, &provider, &latest_archive)) {
       return 1;
     }
 
     const char *cache = cache_get_path();
-    LatestArchive latest_archive = {0};
-    list_folder_files(state->google_access_token, provider.folder_id,
-                      &latest_archive);
-    state_save();
-
-    printf(STYLE_BOLD "Status\n" STYLE_RESET);
-    printf("  Vault Path: ");
-    if (state->vault_path[0]) {
-      printf("%s\n", state->vault_path);
-    } else {
-      printf(COLOR_RED "(null\n" STYLE_RESET);
-    }
-
-    printf("  Last sync: ");
-    if (state->last_sync) {
-      char date[32];
-      timestamp_to_string(state->last_sync, date, sizeof(date));
-
-      printf(COLOR_GREEN "%s\n" STYLE_RESET, date);
-    } else {
-      printf(COLOR_RED "(never)\n" STYLE_RESET);
-    }
-
-    printf("  Last backup: ");
-    if (latest_archive.file_id[0]) {
-      char date[32];
-      timestamp_to_string(latest_archive.timestamp, date, sizeof(date));
-
-      printf(COLOR_GREEN "%s\n" STYLE_RESET, date);
-    } else {
-      printf(COLOR_RED "(never)\n" STYLE_RESET);
-    }
-
-    if (state->google_access_token[0]) {
-      printf("  Google Drive: Authenticated\n");
-    } else {
-      printf("  Google Drive: Not authenticated (run 'auth')\n");
-    }
 
     char encrypted_dir[512];
     if (!ensure_encrypted_dir(cache, encrypted_dir, sizeof(encrypted_dir))) {

@@ -1,6 +1,7 @@
 #include "core/state.h"
 #include "core/config.h"
 #include "providers/google_drive.h"
+#include "utils/colors.h"
 #include "utils/string_utils.h"
 #include <stddef.h>
 #include <stdio.h>
@@ -131,7 +132,8 @@ bool state_save(void) {
   return true;
 }
 
-bool status_load(State *state, GoogleDriveProvider *provider) {
+bool status_load(State *state, GoogleDriveProvider *provider,
+                 LatestArchive *latest_archive) {
   strncpy(provider->access_token, state->google_access_token,
           sizeof(provider->access_token) - 1);
   provider->access_token[sizeof(provider->access_token) - 1] = '\0';
@@ -150,6 +152,44 @@ bool status_load(State *state, GoogleDriveProvider *provider) {
 
   if (!load_vault_config(state)) {
     return false;
+  }
+
+  list_folder_files(state->google_access_token, provider->folder_id,
+                    latest_archive);
+  state_save();
+
+  printf(STYLE_BOLD "Status\n" STYLE_RESET);
+  printf("  Vault Path: ");
+  if (state->vault_path[0]) {
+    printf("%s\n", state->vault_path);
+  } else {
+    printf(COLOR_RED "(null\n" STYLE_RESET);
+  }
+
+  printf("  Last sync: ");
+  if (state->last_sync) {
+    char date[32];
+    timestamp_to_string(state->last_sync, date, sizeof(date));
+
+    printf(COLOR_GREEN "%s\n" STYLE_RESET, date);
+  } else {
+    printf(COLOR_RED "(never)\n" STYLE_RESET);
+  }
+
+  printf("  Last backup: ");
+  if (latest_archive->file_id[0]) {
+    char date[32];
+    timestamp_to_string(latest_archive->timestamp, date, sizeof(date));
+
+    printf(COLOR_GREEN "%s\n" STYLE_RESET, date);
+  } else {
+    printf(COLOR_RED "(never)\n" STYLE_RESET);
+  }
+
+  if (state->google_access_token[0]) {
+    printf("  Backup Provider: Authenticated\n");
+  } else {
+    printf("  Backup Provider: Not authenticated (run 'auth')\n");
   }
 
   return true;
