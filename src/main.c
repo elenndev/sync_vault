@@ -1,6 +1,7 @@
 #include "core/cache.h"
 #include "core/cli.h"
 #include "core/config.h"
+#include "core/debug.h"
 #include "core/state.h"
 #include "files/files.h"
 #include "providers/google_drive.h"
@@ -26,19 +27,15 @@ int main(int argc, char *argv[]) {
   }
 
   const char *command = argv[1];
-  bool debug = false;
 
   for (int i = 2; i < argc; i++) {
     if (strcmp(argv[i], "--debug") == 0) {
-      debug = true;
+      debug_set_enabled(true);
+      debug_log("debug mode enabled");
     } else {
       fprintf(stderr, "Unknown option: %s\n", argv[i]);
       return 1;
     }
-  }
-
-  if (debug) {
-    printf(STYLE_BOLD "[debug] Debug mode enabled\n" STYLE_RESET);
   }
 
   switch (state_load()) {

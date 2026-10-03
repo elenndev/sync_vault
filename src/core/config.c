@@ -1,4 +1,5 @@
 #include "core/config.h"
+#include "core/debug.h"
 #include "core/state.h"
 #include "providers/google_drive.h"
 #include "utils/colors.h"
@@ -185,10 +186,11 @@ bool load_credentials(GoogleDriveProvider *provider) {
              "%s/.config/sync-vault/config.json", home);
   }
 
-  printf("Looking for config file: %s\n", config_path);
+  // show only when debug
+  debug_log("Looking for config file: %s\n", config_path);
 
   if (load_credentials_from_file(config_path, provider)) {
-    printf("Credentials loaded from config file\n");
+    debug_log("Credentials loaded from config file\n");
     return true;
   }
 
@@ -235,10 +237,8 @@ bool load_vault_config(State *state) {
              "%s/.config/sync-vault/config.json", home);
   }
 
-  printf("Looking for config file: %s\n", config_path);
-
   if (load_vault_config_from_file(config_path, state)) {
-    printf("Vault config loaded from config file\n");
+    debug_log("Vault config loaded from config file\n");
     return true;
   }
 

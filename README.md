@@ -19,6 +19,15 @@ Currently using Google Drive as the storage provider, but I plan to add support 
 
 Encryption is handled by [crip-crypt](https://github.com/elenndev/crip-crypt).
 
+## Debug mode
+Any command can be run with the `--debug` flag to get extra logs about what the tool is doing:
+
+```bash
+sync-vault <command> --debug
+```
+
+When enabled, sync-vault prints detailed messages about each step being executed, which is useful for troubleshooting or understanding the internal flow.
+
 ## Dependencies
 **System libraries:**
 

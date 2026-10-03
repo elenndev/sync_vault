@@ -1,4 +1,5 @@
 #include "providers/google_drive.h"
+#include "core/debug.h"
 #include "core/state.h"
 #include "files/files.h"
 #include "http/http_server.h"
@@ -753,7 +754,7 @@ bool google_drive_refresh_access_token(GoogleDriveProvider *provider) {
     return false;
   }
 
-  printf("successfully refreshed access token\n");
+  debug_log("successfully refreshed access token\n");
 
   struct json_object *json = json_tokener_parse(response);
 
