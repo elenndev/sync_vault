@@ -133,7 +133,7 @@ bool state_save(void) {
 }
 
 bool status_load(State *state, GoogleDriveProvider *provider,
-                 LatestArchive *latest_archive) {
+                 LatestArchive *latest_archive, SyncAction *action) {
   strncpy(provider->access_token, state->google_access_token,
           sizeof(provider->access_token) - 1);
   provider->access_token[sizeof(provider->access_token) - 1] = '\0';
@@ -143,16 +143,16 @@ bool status_load(State *state, GoogleDriveProvider *provider,
   provider->refresh_token[sizeof(provider->refresh_token) - 1] = '\0';
 
   if (!load_credentials(provider)) {
+    *action = SYNC_AUTH;
     return false;
   }
 
   if (!google_drive_refresh_access_token(provider)) {
+    *action = SYNC_AUTH;
     return false;
   }
 
-  if (!load_vault_config(state)) {
-    return false;
-  }
+  load_vault_config(state);
 
   list_folder_files(state->google_access_token, provider->folder_id,
                     latest_archive);
@@ -198,18 +198,30 @@ bool status_load(State *state, GoogleDriveProvider *provider,
 void report_sync_direction(SyncAction *action,
                            const LatestArchive *latest_archive,
                            time_t last_sync) {
-  compare_syncs(last_sync, latest_archive->timestamp, action);
+  if (*action != SYNC_AUTH) {
+    compare_syncs(last_sync, latest_archive->timestamp, action);
+  }
 
-  if (*action == SYNC_DOWNLOAD) {
+  switch (*action) {
+  case SYNC_NONE:
+    break;
+
+  case SYNC_AUTH:
+    printf(STYLE_BOLD "Token has been expired or revoked\n"
+                      "Run 'auth'\n" STYLE_RESET);
+    break;
+
+  case SYNC_DOWNLOAD:
     printf(STYLE_BOLD "Sync: DOWNLOAD (remote → local)\n"
                       "Your local copy will be updated with the latest "
                       "archive.\n" STYLE_RESET);
-  }
+    break;
 
-  if (*action == SYNC_UPLOAD) {
+  case SYNC_UPLOAD:
     printf(STYLE_BOLD "Sync: UPLOAD (local → remote)\n"
                       "The remote archive will be updated with your local "
                       "files.\n" STYLE_RESET);
+    break;
   }
 }
 

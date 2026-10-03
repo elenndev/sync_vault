@@ -16,7 +16,7 @@ typedef struct {
 
 } State;
 
-typedef enum { SYNC_NONE, SYNC_DOWNLOAD, SYNC_UPLOAD } SyncAction;
+typedef enum { SYNC_NONE, SYNC_DOWNLOAD, SYNC_UPLOAD, SYNC_AUTH } SyncAction;
 typedef enum {
   STATE_LOAD_OK = 0,
   STATE_LOAD_ERR_DIR,
@@ -35,7 +35,7 @@ void compare_syncs(time_t last_local_sync_timestamp, time_t backup_timestamp,
 void get_state_dir(char *buffer, size_t size);
 
 bool status_load(State *state, GoogleDriveProvider *provider,
-                 LatestArchive *latest_archive);
+                 LatestArchive *latest_archive, SyncAction *action);
 
 void report_sync_direction(SyncAction *action,
                            const LatestArchive *latest_archive,

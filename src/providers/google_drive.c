@@ -747,6 +747,7 @@ bool google_drive_refresh_access_token(GoogleDriveProvider *provider) {
   }
 
   if (http_code != 200) {
+    // show only when debug
     fprintf(stderr, "Google drive http error: %ld\n", http_code);
     fprintf(stderr, "Response: %s\n", response);
     return false;

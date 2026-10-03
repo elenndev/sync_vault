@@ -102,16 +102,14 @@ int main(int argc, char *argv[]) {
     GoogleDriveProvider provider = {0};
     LatestArchive latest_archive = {0};
 
-    if (!status_load(state, &provider, &latest_archive)) {
-      return 1;
-    }
+    status_load(state, &provider, &latest_archive, &action);
 
     if (state->last_sync == '\0') {
       action = SYNC_DOWNLOAD;
       printf(STYLE_BOLD "Sync will run Download...\n" STYLE_RESET);
     }
 
-    if (action == SYNC_NONE) {
+    if (action != SYNC_NONE) {
       report_sync_direction(&action, &latest_archive, state->last_sync);
     }
 
@@ -126,8 +124,11 @@ int main(int argc, char *argv[]) {
 
     LatestArchive latest_archive = {0};
 
-    if (!status_load(state, &provider, &latest_archive)) {
-      return 1;
+    status_load(state, &provider, &latest_archive, &action);
+
+    if (action == SYNC_AUTH) {
+      report_sync_direction(&action, &latest_archive, state->last_sync);
+      return 0;
     }
 
     const char *cache = cache_get_path();
@@ -141,7 +142,7 @@ int main(int argc, char *argv[]) {
       action = SYNC_DOWNLOAD;
     }
 
-    if (action == SYNC_NONE) {
+    if (action != SYNC_NONE) {
       report_sync_direction(&action, &latest_archive, state->last_sync);
     }
 
