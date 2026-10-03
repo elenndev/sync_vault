@@ -109,9 +109,7 @@ int main(int argc, char *argv[]) {
       printf(STYLE_BOLD "Sync will run Download...\n" STYLE_RESET);
     }
 
-    if (action != SYNC_NONE) {
-      report_sync_direction(&action, &latest_archive, state->last_sync);
-    }
+    report_sync_direction(&action, &latest_archive, state->last_sync);
 
     return 0;
   }
@@ -142,9 +140,7 @@ int main(int argc, char *argv[]) {
       action = SYNC_DOWNLOAD;
     }
 
-    if (action != SYNC_NONE) {
-      report_sync_direction(&action, &latest_archive, state->last_sync);
-    }
+    report_sync_direction(&action, &latest_archive, state->last_sync);
 
     time_t now = time(NULL);
 
