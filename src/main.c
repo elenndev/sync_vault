@@ -13,7 +13,7 @@
 
 int main(int argc, char *argv[]) {
   if (argc < 2) {
-    printf("Usage: %s <command>\n", argv[0]);
+    printf("Usage: %s <command> [--debug]\n", argv[0]);
     printf("\nAvailable commands:\n");
     printf("  auth          - Authenticate with Google Drive\n");
     printf("  start         - Start the sync service\n");
@@ -21,8 +21,24 @@ int main(int argc, char *argv[]) {
     printf("  config        - Show config file location\n");
     printf("\nExamples:\n");
     printf("  %s auth\n", argv[0]);
-    printf("  %s status\n", argv[0]);
+    printf("  %s start --debug\n", argv[0]);
     return 1;
+  }
+
+  const char *command = argv[1];
+  bool debug = false;
+
+  for (int i = 2; i < argc; i++) {
+    if (strcmp(argv[i], "--debug") == 0) {
+      debug = true;
+    } else {
+      fprintf(stderr, "Unknown option: %s\n", argv[i]);
+      return 1;
+    }
+  }
+
+  if (debug) {
+    printf(STYLE_BOLD "[debug] Debug mode enabled\n" STYLE_RESET);
   }
 
   switch (state_load()) {
@@ -30,7 +46,7 @@ int main(int argc, char *argv[]) {
     break;
 
   case STATE_LOAD_NOT_FOUND_AUTH_NEED:
-    if (strcmp(argv[1], "auth") != 0) {
+    if (strcmp(command, "auth") != 0) {
       printf(COLOR_RED "Not authenticated yet. Run the 'auth' command to get "
                        "started.\n" STYLE_RESET);
       printf("run: \n%s auth\n", argv[0]);
@@ -50,7 +66,7 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  if (strcmp(argv[1], "config") == 0) {
+  if (strcmp(command, "config") == 0) {
     const char *xdg = getenv("XDG_CONFIG_HOME");
     char config_path[512];
 
@@ -96,7 +112,7 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  if (strcmp(argv[1], "status") == 0) {
+  if (strcmp(command, "status") == 0) {
     State *state = state_get();
     SyncAction action = SYNC_NONE;
     GoogleDriveProvider provider = {0};
@@ -114,7 +130,7 @@ int main(int argc, char *argv[]) {
     return 0;
   }
 
-  if (strcmp(argv[1], "start") == 0) {
+  if (strcmp(command, "start") == 0) {
     SyncAction action = SYNC_NONE;
 
     GoogleDriveProvider provider = {0};
@@ -223,7 +239,7 @@ int main(int argc, char *argv[]) {
     return 0;
   }
 
-  if (strcmp(argv[1], "sync") == 0) {
+  if (strcmp(command, "sync") == 0) {
     printf("started sync...");
 
     GoogleDriveProvider provider = {0};
